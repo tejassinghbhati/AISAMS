@@ -23,7 +23,7 @@ export default function App() {
               <Eye size={12} className="text-accent"/>
             </div>
             <div className="leading-none">
-              <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-tx">Nigahban</div>
+              <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-tx">Drishya</div>
               <div className="font-mono text-[7px] tracking-[0.1em] uppercase text-tx3 mt-px">
                 Indian Railways · eGov DIGIT
               </div>
