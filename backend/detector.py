@@ -40,6 +40,12 @@ class SpatialAssetDetector:
     def __init__(self):
         self.yolo = None
         self.yolo_available = False
+        self._loaded = False
+
+    def _ensure_yolo(self):
+        if self._loaded:
+            return
+        self._loaded = True
         if _YOLO_OK:
             try:
                 self.yolo = YOLO("yolov8n.pt")
@@ -59,6 +65,7 @@ class SpatialAssetDetector:
         job_id: str = "",
         out_dir: str = "results",
     ) -> dict:
+        self._ensure_yolo()
         img = cv2.imread(img_path)
         if img is None:
             raise ValueError(f"Cannot read image: {img_path}")
