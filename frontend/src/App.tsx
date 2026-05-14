@@ -17,7 +17,7 @@ export default function App() {
       {/* ── Header ── */}
       <header className="sticky top-0 z-50"
         style={isLanding
-          ? { borderBottom: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+          ? { borderBottom: '1px solid rgba(0,0,0,0.1)', background: 'rgba(232,232,232,0.85)', backdropFilter: 'blur(12px)', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }
           : { borderBottom: '1px solid #21262d', background: '#07080b' }
         }>
         <div className={`${wide ? 'max-w-screen-2xl' : 'max-w-4xl'} mx-auto px-5 h-14 flex items-center gap-4`}>
@@ -29,7 +29,7 @@ export default function App() {
               <Eye size={14} style={{ color: isLanding ? '#ffffff' : '#388bfd' }}/>
             </div>
             <div className="leading-none">
-              <div className="font-bold text-[13px] tracking-wide" style={{ color: isLanding ? '#1e293b' : '#c9d1d9' }}>
+              <div className="font-bold text-[14px] tracking-wide" style={{ color: isLanding ? '#1e293b' : '#c9d1d9', fontFamily: 'Poppins, sans-serif' }}>
                 Drishya
               </div>
               <div className="text-[8px] tracking-wider uppercase font-medium mt-px"
