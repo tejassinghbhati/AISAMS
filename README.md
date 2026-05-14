@@ -1,7 +1,7 @@
-# DRISHYA — Geospatial Asset Intelligence for Indian Railways
+# DRISHYA: Geospatial Asset Intelligence for Indian Railways
 
 > **Distributed Remote-sensing Intelligence System for Habitat and Yield Analysis**  
-> *Indian Railways × eGov DIGIT Unified Infrastructure Platform*
+> *Indian Railways x eGov DIGIT Unified Infrastructure Platform*
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat&logo=fastapi)
@@ -13,7 +13,7 @@
 
 ## Abstract
 
-India's 68,000-kilometre rail network encompasses approximately **1.2 million acres** of land parcels distributed across ecologically and geographically diverse zones — from the Western Ghats evergreen corridors to the hyper-arid Thar Desert plains. Manual geodetic survey of this infrastructure incurs cycle times exceeding 18 months and carries substantial epistemic uncertainty in rapidly urbanising encroachment zones, where land-use change can occur within weeks.
+India's 68,000-kilometre rail network encompasses approximately **1.2 million acres** of land parcels distributed across ecologically and geographically diverse zones, from the Western Ghats evergreen corridors to the hyper-arid Thar Desert plains. Manual geodetic survey of this infrastructure incurs cycle times exceeding 18 months and carries substantial epistemic uncertainty in rapidly urbanising encroachment zones, where land-use change can occur within weeks.
 
 DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining instance segmentation (YOLOv8-seg) with semantic land-cover classification (DeepLabV3-MobileNetV3) to produce sub-second, fully geo-referenced asset inventories from raw satellite or UAV imagery. Outputs are serialised as standards-compliant GeoJSON and integrated with the **eGov DIGIT Urban Infrastructure** platform, closing the loop from raw orbital imagery to field-action workflows without manual photointerpretation.
 
@@ -39,13 +39,13 @@ DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining i
 
 ```mermaid
 graph TB
-    A["🛰️ Input — Satellite / UAV Image\n(JPEG · PNG · GeoTIFF)"] --> B
+    A["🛰️ Input: Satellite / UAV Image\n(JPEG · PNG · GeoTIFF)"] --> B
 
     B["FastAPI Ingestion Layer\n• EXIF metadata extraction\n• Resolution validation\n• Job ID assignment"]
 
     B --> C{"GSD\n≤ 0.5 m/px?"}
-    C -->|Yes — high-res| D["YOLOv8-seg\nInstance Segmentation\n(buildings · vehicles · drains)"]
-    C -->|No — coarse| E["Spectral-only\nHSV Pipeline"]
+    C -->|High-res| D["YOLOv8-seg\nInstance Segmentation\n(buildings · vehicles · drains)"]
+    C -->|Coarse| E["Spectral-only\nHSV Pipeline"]
 
     D --> F["HSV Spectral Decomposition\n(OpenCV · vegetation · water · roads)"]
     E --> F
@@ -75,7 +75,7 @@ $$\text{GSD} = \frac{H \cdot p}{f}$$
 
 where $H$ is orbital altitude (m), $p$ is detector pixel pitch (μm), and $f$ is focal length (mm). For the WorldView-2 sensor (our primary training data source), $H \approx 770\,\text{km}$, $p = 8\,\text{μm}$, $f = 3500\,\text{mm}$, yielding $\text{GSD} \approx 0.46\,\text{m/px}$ at nadir. DRISHYA targets $\text{GSD} \leq 0.5\,\text{m/px}$ as the minimum threshold for asset-level detection.
 
-Multi-spectral imagery provides four bands — Blue (450–510 nm), Green (510–580 nm), Red (630–690 nm), and Near-Infrared (770–895 nm) — enabling spectral indices such as:
+Multi-spectral imagery provides four bands (Blue 450-510 nm, Green 510-580 nm, Red 630-690 nm, Near-Infrared 770-895 nm), enabling spectral indices such as:
 
 $$\text{NDVI} = \frac{\rho_\text{NIR} - \rho_\text{Red}}{\rho_\text{NIR} + \rho_\text{Red}}$$
 
@@ -83,7 +83,7 @@ which discriminates vegetation from bare soil and built surfaces with high fidel
 
 ---
 
-### 2.2 Instance Segmentation — YOLOv8-seg
+### 2.2 Instance Segmentation: YOLOv8-seg
 
 YOLOv8-seg (Jocher et al., 2023) extends the YOLO family with a **dual-head anchor-free architecture** capable of simultaneous bounding-box regression and instance mask prediction:
 
@@ -103,7 +103,7 @@ where $\sigma$ is the sigmoid activation. This design achieves instance-level pi
 
 ---
 
-### 2.3 Semantic Segmentation — DeepLabV3+
+### 2.3 Semantic Segmentation: DeepLabV3+
 
 Land-cover classification employs **DeepLabV3+** (Chen et al., 2018) with MobileNetV3-Large as the encoder backbone:
 
@@ -111,7 +111,7 @@ Land-cover classification employs **DeepLabV3+** (Chen et al., 2018) with Mobile
 
 $$y[i] = \sum_k x[i + r \cdot k] \cdot w[k]$$
 
-**Encoder–Decoder Design**: The ASPP output is bilinearly upsampled and concatenated with low-level features from the backbone's early layers, enabling fine boundary recovery.
+**Encoder-Decoder Design**: The ASPP output is bilinearly upsampled and concatenated with low-level features from the backbone's early layers, enabling fine boundary recovery.
 
 **MobileNetV3-Large Backbone**: Utilises depthwise separable convolutions (reducing FLOPs by factor $\approx 8\times$), hard-swish activations, and squeeze-and-excitation modules. Output stride is fixed at 16, balancing receptive field size with spatial resolution.
 
@@ -125,36 +125,36 @@ Class weights $w_c$ are the inverse of class frequency in the DeepGlobe training
 
 ### 2.4 HSV Spectral Segmentation
 
-For classes where labelled training data is insufficient or where spectral signal is unambiguous, we apply direct analysis in the **Hue–Saturation–Value (HSV)** colour space. HSV decouples chromatic content from luminance, making spectral signatures more stable across illumination conditions.
+For classes where labelled training data is insufficient or where spectral signal is unambiguous, we apply direct analysis in the **Hue-Saturation-Value (HSV)** colour space. HSV decouples chromatic content from luminance, making spectral signatures more stable across illumination conditions.
 
 | Asset Class | Hue Range (°) | Saturation Threshold | Value Range | Physical Rationale |
 |---|---|---|---|---|
-| Vegetation (trees/parks) | 35–165 | > 0.25 | > 0.15 | Chlorophyll absorption peak at 680 nm; strong NIR reflectance |
-| Water bodies | 90–140 | > 0.35 | 0.10–0.60 | Near-total absorption across visible spectrum; blue sky reflection |
-| Roads | any | < 0.12 | 0.25–0.80 | Spectrally flat asphalt; moderate grey reflectance |
+| Vegetation (trees/parks) | 35-165 | > 0.25 | > 0.15 | Chlorophyll absorption peak at 680 nm; strong NIR reflectance |
+| Water bodies | 90-140 | > 0.35 | 0.10-0.60 | Near-total absorption across visible spectrum; blue sky reflection |
+| Roads | any | < 0.12 | 0.25-0.80 | Spectrally flat asphalt; moderate grey reflectance |
 | Drains / channels | any | < 0.15 | < 0.30 | Shadow geometry + moist soil absorption |
 
 Detected regions undergo **morphological refinement** (closing with $5 \times 5$ elliptical kernel) followed by connected-component analysis with minimum area threshold to suppress photometric noise.
 
 ---
 
-### 2.5 Change Detection — Theory and Algorithm
+### 2.5 Change Detection: Theory and Algorithm
 
 Temporal change analysis identifies land-use transitions between two co-registered images. The algorithm operates in four stages:
 
-**Stage 1 — Image Registration**: ORB (Oriented FAST and Rotated BRIEF) keypoints are extracted from both images. RANSAC-based homography estimation filters outlier matches and computes a projective transformation $H$ aligning the "after" image to the "before" image coordinate frame:
+**Stage 1: Image Registration**. ORB (Oriented FAST and Rotated BRIEF) keypoints are extracted from both images. RANSAC-based homography estimation filters outlier matches and computes a projective transformation $H$ aligning the "after" image to the "before" image coordinate frame:
 
 $$H = \arg\min_{H'}\sum_i \rho\!\left(\|x_i' - H' x_i\|^2\right)$$
 
-**Stage 2 — Per-channel Differencing**: Absolute difference across all RGB channels:
+**Stage 2: Per-channel Differencing**. Absolute difference across all RGB channels:
 
 $$\Delta I = \frac{1}{3}\sum_{c \in \{R,G,B\}}\left|I_\text{after}^{(c)} - I_\text{before}^{(c)}\right|$$
 
-**Stage 3 — Otsu Thresholding**: The optimal binarisation threshold $\tau^*$ is determined by maximising inter-class variance:
+**Stage 3: Otsu Thresholding**. The optimal binarisation threshold $\tau^*$ is determined by maximising inter-class variance:
 
 $$\tau^* = \arg\max_\tau\,\sigma_B^2(\tau) = \omega_0(\tau)\,\omega_1(\tau)\,\left[\mu_0(\tau) - \mu_1(\tau)\right]^2$$
 
-**Stage 4 — Morphological Refinement and Classification**:
+**Stage 4: Morphological Refinement and Classification**:
 
 ```mermaid
 flowchart LR
@@ -162,9 +162,9 @@ flowchart LR
     B --> C["Dilation\n(connect fragments\nkernel 5×5)"]
     C --> D["Connected-Component\nLabelling"]
     D --> E{"Spectral class\nbefore vs. after"}
-    E -->|"Green → Grey"| F["Vegetation Loss"]
-    E -->|"None → Structure"| G["Encroachment /\nNew Construction"]
-    E -->|"Dry → Blue"| H["Flooding /\nNew Water Body"]
+    E -->|"Green to Grey"| F["Vegetation Loss"]
+    E -->|"None to Structure"| G["Encroachment /\nNew Construction"]
+    E -->|"Dry to Blue"| H["Flooding /\nNew Water Body"]
     E -->|"Any other"| I["General\nLand-use Change"]
 ```
 
@@ -176,7 +176,7 @@ flowchart LR
 flowchart LR
     IN["Input Image\n(any resolution)"] --> PP
 
-    PP["Pre-processing\n① Resize → 640×640 (letterbox)\n② Normalise to [0, 1]\n③ BGR → RGB channel swap"] --> DET
+    PP["Pre-processing\n① Resize to 640×640 (letterbox)\n② Normalise to [0, 1]\n③ BGR to RGB channel swap"] --> DET
 
     DET["YOLOv8-seg\nForward Pass\n~380 ms CPU"] --> NMS
 
@@ -190,7 +190,7 @@ flowchart LR
 
     MERGE["Fusion Engine\n① IoU deduplication (th=0.5)\n② Class-priority override\n③ Confidence re-calibration"] --> GEO
 
-    GEO["Geo-referencing\n① Centre pixel → lat/lon\n② Footprint area via GSD\n③ WGS-84 projection"] --> OUT
+    GEO["Geo-referencing\n① Centre pixel to lat/lon\n② Footprint area via GSD\n③ WGS-84 projection"] --> OUT
 
     OUT["GeoJSON Output\n+ per-class counts\n+ total area (m²)\n+ confidence distribution"]
 ```
@@ -208,7 +208,7 @@ flowchart TD
 
     REG --> DIFF["Absolute Differencing\nΔI = ⅓ Σ|I₁ᶜ − I₀ᶜ| over {R,G,B}"]
     DIFF --> THRESH["Otsu Thresholding\nτ* = argmax σ²_B(τ)"]
-    THRESH --> MORPH["Morphological Ops\n① Opening — 3×3 kernel\n② Dilation — 5×5 kernel"]
+    THRESH --> MORPH["Morphological Ops\n① Opening, 3×3 kernel\n② Dilation, 5×5 kernel"]
     MORPH --> CC["Connected Components\nmin area = 50 px²"]
     CC --> SPEC2["Per-region Spectral Analysis\nCompare HSV class T₀ vs T₁"]
     SPEC2 --> OUT2["Change Map GeoJSON\nFields: change_type · area_m2\n· severity · bbox · confidence"]
@@ -218,7 +218,7 @@ flowchart TD
 
 ## 5. Datasets
 
-### 5.1 SpaceNet Challenge 4 (SN4) — Building Detection
+### 5.1 SpaceNet Challenge 4 (SN4): Building Detection
 
 | Property | Value |
 |---|---|
@@ -232,7 +232,7 @@ flowchart TD
 | Evaluation metric | Building F1 at IoU ≥ 0.5 |
 | Challenge year | 2017 (NIST / CosmiQ Works) |
 
-### 5.2 DeepGlobe Land Cover Dataset — Semantic Segmentation
+### 5.2 DeepGlobe Land Cover Dataset: Semantic Segmentation
 
 | Property | Value |
 |---|---|
@@ -240,13 +240,13 @@ flowchart TD
 | Spatial coverage | 1,716.9 km² across 3 continents |
 | Total tiles | 1,146 (803 train + 171 val + 172 test) |
 | Tiles used (training) | 792 (train split) |
-| Tile resolution | 2448 × 2448 px |
+| Tile resolution | 2448 x 2448 px |
 | GSD | 0.50 m/px |
 | Classes | 7 (Urban · Agriculture · Rangeland · Forest · Water · Barren · Unknown) |
 | Challenge year | CVPR 2018 Workshop |
 | Label format | RGB-coded semantic masks |
 
-### 5.3 COCO 2017 — Vehicle Pre-training
+### 5.3 COCO 2017: Vehicle Pre-training
 
 YOLOv8 backbone is initialised from COCO 2017 pre-trained weights. Vehicle classes (car, truck, bus, motorcycle) are remapped to a single **vehicle** label in our detection taxonomy, benefiting from the 118,287-image COCO training distribution.
 
@@ -259,13 +259,13 @@ YOLOv8 backbone is initialised from COCO 2017 pre-trained weights. Vehicle class
 | Parameter | Value | Rationale |
 |---|---|---|
 | Base variant | YOLOv8n-seg (nano, 3.4M params) | CPU-deployable; ≤ 6 MB weights |
-| Input resolution | 640 × 640 | Standard YOLO training resolution |
+| Input resolution | 640 x 640 | Standard YOLO training resolution |
 | Epochs | 50 (patience = 10) | Early stopping on val mAP@0.5 |
 | Batch size | 16 | Fits 8 GB GPU VRAM |
 | Optimiser | AdamW | lr = 1×10⁻³, weight\_decay = 1×10⁻⁴ |
 | LR schedule | Cosine annealing | lrf = 0.01 |
 | Augmentation | Mosaic · MixUp · HSV jitter · random flip | Simulates diverse acquisition conditions |
-| NMS conf threshold | 0.25 | Conservative — minimises false positives |
+| NMS conf threshold | 0.25 | Conservative, minimises false positives |
 | NMS IoU threshold | 0.45 | Allows adjacent structures |
 
 ### 6.2 DeepLabV3-MobileNetV3 Hyperparameters
@@ -273,20 +273,20 @@ YOLOv8 backbone is initialised from COCO 2017 pre-trained weights. Vehicle class
 | Parameter | Value | Rationale |
 |---|---|---|
 | Backbone | MobileNetV3-Large | ImageNet pre-trained; 5.4M params |
-| ASPP dilation rates | {1, 6, 12, 18} | Captures features at 1×–18× receptive field |
+| ASPP dilation rates | {1, 6, 12, 18} | Captures features at 1x-18x receptive field |
 | Output stride | 16 | Balances memory vs. spatial precision |
-| Input resolution | 512 × 512 | Fits DeepGlobe tile dimensions |
+| Input resolution | 512 x 512 | Fits DeepGlobe tile dimensions |
 | Epochs | 15 | Sufficient for fine-tuning pre-trained backbone |
 | Batch size | 8 | |
 | Optimiser | SGD | lr = 1×10⁻², momentum = 0.9 |
-| Loss | Weighted cross-entropy | Weights ∝ inverse class frequency |
+| Loss | Weighted cross-entropy | Weights proportional to inverse class frequency |
 | Training dataset | 792 DeepGlobe tiles | ~35 min on RTX 2050 |
 
 ---
 
 ## 7. Results & Evaluation
 
-### 7.1 Building Detection (SpaceNet SN4 — Atlanta held-out tiles)
+### 7.1 Building Detection (SpaceNet SN4, Atlanta held-out tiles)
 
 Evaluated at IoU ≥ 0.5 following SpaceNet Challenge protocol:
 
@@ -297,7 +297,7 @@ Evaluated at IoU ≥ 0.5 following SpaceNet Challenge protocol:
 | F1 Score | 50.8% | Harmonic mean |
 | mAP@0.5 | 52.3% | COCO-style averaging across confidence thresholds |
 
-> **Design note**: The high-precision / lower-recall profile is intentional. For encroachment monitoring on railway land, a false-positive detection (flagging legitimate structures as encroachments) carries far greater operational cost than a missed detection. The system is therefore tuned to suppress false alerts, with recall recoverable by reducing the NMS confidence threshold.
+> **Design note**: The high-precision / lower-recall profile is intentional. For encroachment monitoring on railway land, a false-positive detection (flagging legitimate structures as encroachments) carries far greater operational cost than a missed detection. The system is tuned to suppress false alerts, with recall recoverable by reducing the NMS confidence threshold.
 
 ### 7.2 Land Cover Segmentation (DeepGlobe test split)
 
@@ -309,7 +309,7 @@ Evaluated at IoU ≥ 0.5 following SpaceNet Challenge protocol:
 | Forest | 58.9% | 74.1% |
 | Water | 76.3% | 86.6% |
 | Barren / Desert | 52.7% | 69.0% |
-| Unknown | — | — |
+| Unknown | n/a | n/a |
 | **Mean (mIoU)** | **59.7%** | **75.3%** |
 
 ### 7.3 Inference Latency (Intel Core i7 11th Gen, CPU-only)
@@ -332,8 +332,8 @@ Evaluated at IoU ≥ 0.5 following SpaceNet Challenge protocol:
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/detect` | Upload image → detection result |
-| `POST` | `/api/change` | Upload before+after → change map |
+| `POST` | `/api/detect` | Upload image, returns detection result |
+| `POST` | `/api/change` | Upload before+after, returns change map |
 | `GET` | `/api/segment` | Land cover segmentation |
 | `GET` | `/api/export/{id}/geojson` | Download GeoJSON for job |
 | `GET` | `/api/export/{id}/csv` | Download CSV for job |
@@ -360,16 +360,16 @@ curl -X POST http://localhost:8000/api/detect \
       "id": 1,
       "class": "building",
       "confidence": 0.91,
-      "bbox": [x1, y1, x2, y2],          // pixel coords
+      "bbox": [x1, y1, x2, y2],
       "area_m2": 312.4,
       "lat": 28.6141,
       "lon": 77.2093,
-      "mask": "base64-encoded PNG..."     // instance mask
+      "mask": "base64-encoded PNG..."
     }
   ],
   "summary": {
     "total_detections": 47,
-    "by_class": { "building": 23, "tree": 12, "water": 4, ... },
+    "by_class": { "building": 23, "tree": 12, "water": 4 },
     "total_area_m2": 14820.3,
     "inference_ms": 487
   }
@@ -399,7 +399,7 @@ npm run dev
 # UI available at http://localhost:5173
 ```
 
-### Land Cover Model (optional — required for /segment)
+### Land Cover Model (optional, required for /segment)
 
 ```bash
 python train_segmentation.py --data ./data --epochs 15 --batch 8
@@ -429,7 +429,7 @@ python train_segmentation.py --data ./data --epochs 15 --batch 8
 6. Van Etten, A., Lindenbaum, D., & Bacastow, T. M. (2018). *SpaceNet: A Remote Sensing Dataset and Challenge Series*. arXiv:1807.01232.
 7. Maxar Technologies. (2016). *WorldView-2 Data Sheet*. Westminster, CO.
 8. Gonzalez, R. C. & Woods, R. E. (2018). *Digital Image Processing*, 4th ed. Pearson Education.
-9. Otsu, N. (1979). A Threshold Selection Method from Gray-Level Histograms. *IEEE Transactions on Systems, Man, and Cybernetics*, 9(1), 62–66.
+9. Otsu, N. (1979). A Threshold Selection Method from Gray-Level Histograms. *IEEE Transactions on Systems, Man, and Cybernetics*, 9(1), 62-66.
 10. Daudt, R. C., Le Saux, B., & Boulch, A. (2018). *Fully Convolutional Siamese Networks for Change Detection*. ICIP 2018.
 11. Rublee, E., Rabaud, V., Konolige, K., & Bradski, G. (2011). *ORB: An efficient alternative to SIFT or SURF*. ICCV 2011.
-12. Fischler, M. A. & Bolles, R. C. (1981). Random Sample Consensus: A Paradigm for Model Fitting. *Communications of the ACM*, 24(6), 381–395.
+12. Fischler, M. A. & Bolles, R. C. (1981). Random Sample Consensus: A Paradigm for Model Fitting. *Communications of the ACM*, 24(6), 381-395.
