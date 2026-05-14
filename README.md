@@ -29,9 +29,10 @@ DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining i
 6. [Model Configuration](#6-model-configuration)
 7. [Results & Evaluation](#7-results--evaluation)
 8. [API Reference](#8-api-reference)
-9. [Quick Start](#9-quick-start)
-10. [Team](#10-team)
-11. [References](#11-references)
+9. [Backend Module Reference](#9-backend-module-reference)
+10. [Quick Start](#10-quick-start)
+11. [Team](#11-team)
+12. [References](#12-references)
 
 ---
 
@@ -378,7 +379,189 @@ curl -X POST http://localhost:8000/api/detect \
 
 ---
 
-## 9. Quick Start
+## 9. Backend Module Reference
+
+The backend is a single FastAPI application composed of six Python modules and a `segmentation/` sub-package.
+
+```
+backend/
+├── main.py                  # FastAPI app, all API routes, SPA serving
+├── detector.py              # SpatialAssetDetector (YOLOv8 + HSV spectral)
+├── change.py                # ChangeDetector (temporal differencing)
+├── geo.py                   # GeoJSON and CSV export helpers
+├── download_samples.py      # ESRI tile downloader (dev utility)
+├── train_segmentation.py    # DeepLabV3 training script
+└── segmentation/
+    ├── dataset.py           # DeepGlobeDataset, color-to-class mappings
+    ├── model.py             # Model definition, build/load helpers
+    └── inference.py         # Lazy singleton inference, stat computation
+```
+
+---
+
+### `main.py` — API gateway
+
+Initialises the FastAPI application, mounts static file directories (`/results`, `/samples`), wires all route handlers, and in production serves the React SPA for all non-API paths:
+
+```python
+app.mount("/", StaticFiles(directory="static", html=True), name="spa")
+```
+
+Jobs are held in an in-process dict (`_jobs`) keyed by `job_id`. Uploaded files persist in `uploads/`; result images are written to `results/{job_id}/`.
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/detect` | Upload image, run `SpatialAssetDetector.detect()` |
+| `POST` | `/api/change` | Upload before + after, run `ChangeDetector.detect_changes()` |
+| `POST` | `/api/segment` | Upload image, run `segmentation.inference.segment_image()` |
+| `POST` | `/api/samples/{filename}/detect` | Run detection on a bundled demo sample |
+| `GET` | `/api/export/{id}/geojson` | Stream GeoJSON via `geo.build_geojson()` |
+| `GET` | `/api/export/{id}/csv` | Stream CSV via `geo.build_csv()` |
+| `GET` | `/api/samples` | Return `samples/manifest.json` with availability flags |
+| `GET` | `/api/health` | Returns `{status: "ok", yolo_available: bool}` |
+| `GET` | `/api/seg/status` | Returns model availability and class list |
+
+---
+
+### `detector.py` — `SpatialAssetDetector`
+
+Hybrid detector combining YOLO instance segmentation with direct HSV spectral analysis.
+
+**`__init__`**: Attempts to load `yolov8n.pt` via `ultralytics.YOLO`. If the file or package is absent, YOLO is disabled and the detector falls back to spectral-only mode.
+
+**`detect(img_path, gsd_m, lat, lon, job_id, out_dir) -> dict`**:
+1. Reads the image with OpenCV.
+2. Runs `_color_segment()` unconditionally.
+3. Runs `_yolo_detect()` if YOLO is available.
+4. Saves an annotated JPEG to `out_dir/annotated.jpg`.
+5. Returns `{detections, summary, annotated_url}`.
+
+**`_color_segment()`** — HSV pipeline, 6 asset classes:
+
+| Class | Detection logic |
+|---|---|
+| Water | `inRange` H: 95-135, S > 50, V: 20-210 |
+| Tree | H: 35-85, S > 40, contour area < 6,000 px² |
+| Park | Same HSV range as tree, area >= 6,000 px² |
+| Road | S < 30, V: 80-180; aspect ratio > 2.0; not water or vegetation |
+| Building | V > 185 AND S < 55; compact shape (aspect < 8); not water or vegetation |
+| Drain | V < 65; elongated via horizontal + vertical morphological kernels; aspect > 2.5 |
+
+Each contour is filtered by a minimum pixel area threshold, then passed to `_make()` which computes physical area in m² (via GSD), geo-centroid, and a WGS-84 bounding polygon.
+
+**`_yolo_detect()`** — runs YOLO inference; filters COCO vehicle classes (`car=2, motorcycle=3, bus=5, truck=7`) with confidence threshold 0.30.
+
+**`_px2geo(px, py, lat, lon, W, H, gsd_m)`** — flat-Earth pixel-to-WGS-84 conversion:
+
+$$\Delta\text{lat} = -\frac{(p_y - H/2) \cdot \text{GSD}}{111{,}111} \qquad \Delta\text{lon} = \frac{(p_x - W/2) \cdot \text{GSD}}{111{,}111 \cdot \cos\phi}$$
+
+---
+
+### `change.py` — `ChangeDetector`
+
+**`detect_changes(before_path, after_path, job_id, out_dir) -> dict`**:
+
+1. Reads both images; resizes the "after" image to match the "before" resolution.
+2. Converts to HSV and computes binary masks for vegetation, bright/built-up, and water at both time steps.
+3. Derives four semantic change masks by boolean combination:
+
+| Change type | Boolean logic | Overlay colour |
+|---|---|---|
+| `new_construction` | `a_bright AND NOT b_bright` | Red |
+| `vegetation_loss` | `b_veg AND NOT a_veg` | Orange |
+| `new_water` | `a_water AND NOT b_water` | Blue |
+| `encroachment` | `b_veg AND a_bright` | Bright red |
+
+4. Applies `MORPH_CLOSE` then `MORPH_OPEN` (7x7 kernel) to each mask to remove speckling and close gaps.
+5. Finds contours, filters by area >= 400 px², draws labelled bounding boxes onto the overlay image.
+6. Saves `change_overlay.jpg` and a side-by-side `comparison.jpg` to `out_dir`.
+7. Returns `{changes, total_changes, change_summary, overlay_url, comparison_url}`.
+
+---
+
+### `geo.py` — export helpers
+
+Two stateless functions operating on a job result dict:
+
+**`build_geojson(job) -> dict`** — produces an RFC 7946 `FeatureCollection`. Each detection with a bounding polygon geometry (available when lat/lon were supplied) becomes a GeoJSON `Feature` with `{id, category, confidence, area_sqm}` properties. Detections without a polygon fall back to a `Point` geometry at the centroid.
+
+**`build_csv(job) -> str`** — produces a CSV string with columns `id, category, confidence, area_sqm, centroid_lat, centroid_lon`. Missing coordinates are emitted as empty fields.
+
+---
+
+### `segmentation/dataset.py` — `DeepGlobeDataset`
+
+Defines the colour-to-class mapping for the 7 DeepGlobe land-cover classes:
+
+| Index | Class | RGB mask colour |
+|---|---|---|
+| 0 | Background | (0, 0, 0) |
+| 1 | Water | (0, 0, 255) |
+| 2 | Forest | (0, 255, 0) |
+| 3 | Urban | (0, 255, 255) |
+| 4 | Rangeland | (255, 0, 255) |
+| 5 | Agriculture | (255, 255, 0) |
+| 6 | Barren | (255, 255, 255) |
+
+**`DeepGlobeDataset`** scans a directory for `*_sat.jpg` / `*_mask.png` pairs. The training split applies random 512x512 crops from 1024x1024 tiles, horizontal flips, and vertical flips. Both splits apply ImageNet normalisation (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).
+
+**`mask_to_tensor(mask_img)`** converts an RGB mask PIL image to a (H, W) LongTensor of class indices.
+**`tensor_to_rgb(tensor)`** is the inverse: class-index tensor to RGB numpy array for visualisation.
+
+---
+
+### `segmentation/model.py` — architecture and weights
+
+**`build_model(pretrained)`** instantiates `deeplabv3_mobilenet_v3_large` from torchvision and replaces the final 1x1 convolution in both the main classifier and auxiliary classifier to output `NUM_CLASSES=7` channels (instead of the COCO default of 21).
+
+**`load_model(path, device)`** loads a saved `state_dict` from `deepglobe_seg.pt` onto the target device and sets the model to eval mode. `weights_only=True` is passed to `torch.load` for safe deserialisation.
+
+---
+
+### `segmentation/inference.py` — `segment_image()`
+
+Uses a module-level lazy singleton: `_model` and `_device` are `None` until the first call, then loaded once and reused across requests. This avoids the model-load overhead on all but the first request.
+
+**`segment_image(img_path, out_dir) -> dict`**:
+1. Resizes input to 512x512, applies ImageNet normalisation.
+2. Runs one forward pass under `torch.no_grad()`, takes `argmax` over the class dimension.
+3. Nearest-neighbour up-samples predictions back to original image resolution.
+4. Saves three outputs: an RGB segmentation PNG (`seg_mask.png`), an alpha-blended overlay JPEG (`seg_overlay.jpg`), and a base64-encoded grayscale class-index PNG for the frontend.
+5. Computes per-class pixel counts and area percentages; returns them sorted by descending coverage.
+
+---
+
+### `train_segmentation.py` — training script
+
+```bash
+python train_segmentation.py --data <root> --epochs 15 --batch 8 --lr 3e-4
+```
+
+`<root>` must contain `train/` and optionally `valid/` subdirectories with DeepGlobe-format sat/mask pairs. If no `valid/` directory is found, 10% of the training set is held out at random.
+
+**Loss**: combined CrossEntropy + 0.5x Dice, providing gradient signal from both hard classification and soft mask overlap:
+
+$$\mathcal{L} = \mathcal{L}_\text{CE} + 0.5 \cdot \mathcal{L}_\text{Dice}$$
+
+**Optimiser**: AdamW (lr=3e-4, weight_decay=1e-4) with cosine annealing LR schedule.
+
+**Checkpointing**: mIoU is computed over the full validation set at the end of each epoch; the best-mIoU checkpoint is saved to `segmentation/deepglobe_seg.pt`.
+
+Typical runtime: 35-45 minutes on an RTX 2050 (4 GB VRAM).
+
+---
+
+### `download_samples.py` — demo image downloader
+
+```bash
+python download_samples.py   # run from backend/
+```
+
+Downloads 3x3 grids of 256 px ESRI World Imagery tiles for three preset Indian locations (Mumbai urban, Delhi railway yard, Bengaluru mixed land-use), stitches and resizes each grid to 900x900 JPEG, and writes `samples/manifest.json`. If the ESRI endpoint is unavailable, a synthetic procedural image (roads, building blocks, vegetation patches, water body) is generated as a fallback using Pillow.
+
+---
+
+## 10. Quick Start
 
 ### Backend
 
@@ -403,12 +586,12 @@ npm run dev
 
 ```bash
 python train_segmentation.py --data ./data --epochs 15 --batch 8
-# ~35 min on RTX 2050; model saved to backend/models/deeplab_landcover.pth
+# ~35 min on RTX 2050; model saved to backend/segmentation/deepglobe_seg.pt
 ```
 
 ---
 
-## 10. Team
+## 11. Team
 
 | Name | Role |
 |---|---|
@@ -419,7 +602,7 @@ python train_segmentation.py --data ./data --epochs 15 --batch 8
 
 ---
 
-## 11. References
+## 12. References
 
 1. Redmon, J., Divvala, S., Girshick, R., & Farhadi, A. (2016). *You Only Look Once: Unified, Real-Time Object Detection*. CVPR 2016.
 2. Jocher, G., Chaurasia, A., & Qiu, J. (2023). *Ultralytics YOLOv8*. https://github.com/ultralytics/ultralytics. DOI: 10.5281/zenodo.7347926.
