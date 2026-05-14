@@ -57,63 +57,49 @@ Satellite and drone imagery already exists — what's missing is an automated, A
 
 ## Slide 4 — Core Architecture / System Design Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          DRISHYA — SYSTEM ARCHITECTURE                      │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    U1["📤 User Upload\n(JPEG · PNG · GeoTIFF)"] --> B
+    U2["🛰️ Live Satellite Fetch\n(lat · lon · zoom)"] --> SAT
+    U3["🖼️ Sample / SpaceNet\nDemo Images"] --> B
 
-  INPUT LAYER
-  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────────────┐
-  │  User Upload     │    │  Live Satellite   │    │  Sample / SpaceNet       │
-  │  (JPG/PNG/TIFF)  │    │  Fetch (ESRI /   │    │  Demo Images             │
-  │                  │    │  Bhuvan ISRO)     │    │                          │
-  └────────┬─────────┘    └────────┬──────────┘    └──────────────┬───────────┘
-           │                       │                               │
-           └───────────────────────┴───────────────────────────────┘
-                                   │
-                          ┌────────▼─────────┐
-                          │   FastAPI Backend │
-                          │  (Python 3.11)    │
-                          └────────┬──────────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              │                    │                     │
-   ┌──────────▼──────────┐  ┌─────▼──────────┐  ┌──────▼────────────────┐
-   │  HSV Spectral        │  │  YOLOv8n       │  │  DeepLabV3-            │
-   │  Pipeline (OpenCV)   │  │  Vehicle Det.  │  │  MobileNetV3           │
-   │                      │  │  (Ultralytics) │  │  Land Cover Seg.       │
-   │  Buildings, Roads,   │  │  Cars, Buses,  │  │  Trained on DeepGlobe  │
-   │  Water, Trees,       │  │  Trucks,       │  │  (792 tiles, 7 classes)│
-   │  Parks, Drains       │  │  Motorcycles   │  │                        │
-   └──────────┬──────────┘  └─────┬──────────┘  └──────┬────────────────┘
-              └────────────────────┴────────────────────┘
-                                   │
-                          ┌────────▼──────────────┐
-                          │  Change Detection      │
-                          │  (HSV Diff + Contour   │
-                          │   Morphology, OpenCV)  │
-                          └────────┬───────────────┘
-                                   │
-              ┌────────────────────┼─────────────────────┐
-              │                    │                      │
-   ┌──────────▼──────────┐  ┌─────▼────────────┐  ┌─────▼──────────────┐
-   │  GeoJSON Export      │  │  Shapefile (.zip)│  │  DIGIT Urban Asset  │
-   │  CSV Export          │  │  (pyshp, WGS-84) │  │  Registry (mock)    │
-   └─────────────────────┘  └──────────────────┘  └─────────────────────┘
-                                   │
-                          ┌────────▼──────────────┐
-                          │   React 18 + TypeScript│
-                          │   Frontend (Vite)      │
-                          │                        │
-                          │  • Interactive canvas  │
-                          │  • Leaflet GIS map     │
-                          │  • Category filter     │
-                          │  • Confidence slider   │
-                          │  • Export bar          │
-                          │  • DIGIT push button   │
-                          └───────────────────────┘
+    SAT["satellite.py\n• ESRI World Imagery tiles\n• Bhuvan ISRO WMS\n• 3×3 grid stitch → 900×900 JPEG"] --> B
 
-  DEPLOYMENT: Single Docker container on Render (CPU-only PyTorch, ≤350 MB RAM)
+    B["⚡ FastAPI Ingestion Layer\nmain.py\n• Job ID assignment · GSD metadata\n• Format validation (JPG/PNG/TIFF)"]
+
+    B --> HSV["🎨 HSV Spectral Pipeline\ndetector.py — OpenCV\nBuildings · Roads · Water\nTrees · Parks · Drains"]
+    B --> YOLO["🔍 YOLOv8n\nVehicle Detection\nUltralytics (COCO)\nCar · Bus · Truck · Motorcycle"]
+    B --> SEG["🗺️ DeepLabV3-MobileNetV3\nLand Cover Segmentation\nTrained on DeepGlobe\n7 classes · 59.7% mIoU"]
+    B --> CHG["🔄 Change Detection\nchange.py — OpenCV\nHSV Diff + Morphology\nEncroachment · Tree loss · Flood"]
+
+    HSV --> GEO["📍 Geo-referencing\nPixel → WGS-84 lat/lon\nArea m² via GSD\nBounding polygon"]
+    YOLO --> GEO
+    SEG --> GEO
+
+    GEO --> EXP["📦 Export Layer\ngeo.py"]
+
+    EXP --> G1["GeoJSON\n(RFC 7946)"]
+    EXP --> G2["Shapefile .zip\n(.shp · .dbf · .prj\nEPSG:4326)"]
+    EXP --> G3["CSV\n(category · area\n· confidence · centroid)"]
+    EXP --> G4["🏛️ DIGIT Urban\nAsset Registry\n(mock push · tenantId\n· assetCategory)"]
+
+    CHG --> G5["Temporal Diff Map\nNew construction\nVegetation loss\nFlooding alert"]
+
+    G1 --> FE["🖥️ React 18 + TypeScript Frontend\nInteractive Canvas · Leaflet GIS Map\nCategory Filter · Confidence Slider\nExport Bar · DIGIT Push Button"]
+    G2 --> FE
+    G3 --> FE
+    G4 --> FE
+    G5 --> FE
+
+    style B fill:#1f2937,stroke:#3b82f6,color:#e5e7eb
+    style GEO fill:#1f2937,stroke:#10b981,color:#e5e7eb
+    style EXP fill:#1f2937,stroke:#8b5cf6,color:#e5e7eb
+    style FE fill:#1f2937,stroke:#f59e0b,color:#e5e7eb
+    style HSV fill:#14532d,stroke:#22c55e,color:#e5e7eb
+    style YOLO fill:#1e3a5f,stroke:#3b82f6,color:#e5e7eb
+    style SEG fill:#3b1f5e,stroke:#a855f7,color:#e5e7eb
+    style CHG fill:#4a1515,stroke:#ef4444,color:#e5e7eb
+    style SAT fill:#1c2b3a,stroke:#06b6d4,color:#e5e7eb
 ```
 
 ---
