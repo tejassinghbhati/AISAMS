@@ -58,7 +58,7 @@ Satellite and drone imagery already exists — what's missing is an automated, A
 ## Slide 4 — Core Architecture / System Design Diagram
 
 ```mermaid
-graph TB
+graph LR
     U1["📤 User Upload\n(JPEG · PNG · GeoTIFF)"] --> B
     U2["🛰️ Live Satellite Fetch\n(lat · lon · zoom)"] --> SAT
     U3["🖼️ Sample / SpaceNet\nDemo Images"] --> B
