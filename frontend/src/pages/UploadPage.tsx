@@ -88,7 +88,7 @@ export default function UploadPage() {
         <h1 className="text-2xl font-bold text-tx mb-2">Detect Spatial Assets</h1>
         <p className="text-tx2 text-sm max-w-xl leading-relaxed">
           Upload a satellite, aerial or drone image to detect and classify buildings,
-          roads, water bodies, vegetation and more — with GeoJSON export.
+          roads, water bodies, vegetation and more, with GeoJSON export.
         </p>
       </div>
 
