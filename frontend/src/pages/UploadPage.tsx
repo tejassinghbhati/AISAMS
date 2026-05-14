@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, MapPin, Ruler, Loader2, ArrowRight, Zap, Map, GitCompare, Crosshair } from 'lucide-react'
 import { detectAssets } from '../api/client'
-import LiveDetectionDemo from '../components/LiveDetectionDemo'
+import HeroDetectionDemo from '../components/HeroDetectionDemo'
 import type { DetectionResult } from '../types'
 
 interface SampleMeta {
@@ -197,7 +197,7 @@ export default function UploadPage() {
 
           {/* ── Right: live demo ── */}
           <div>
-            <LiveDetectionDemo />
+            <HeroDetectionDemo />
             <div className="flex items-center justify-center gap-2 mt-2">
               <span className="w-1 h-1 bg-tx3 inline-block"/>
               <span className="font-mono text-[9px] text-tx3 uppercase tracking-widest">Animated preview · YOLOv8-seg + spectral segmentation</span>
