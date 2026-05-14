@@ -63,7 +63,10 @@ def _save_upload(file: UploadFile, stem: str) -> Path:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "yolo_available": detector.yolo_available}
+    return {
+        "status": "ok",
+        "yolo_available": detector.yolo_available or Path("yolov8n.pt").exists(),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────── samples ──
