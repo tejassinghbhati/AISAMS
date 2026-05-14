@@ -41,6 +41,15 @@ export interface DetectionResult {
     by_category: Record<string, CategorySummary>
   }
   annotated_url: string
+  source_url?: string
+}
+
+export interface DigitPushResult {
+  responseInfo: { status: string; apiId: string; ver: string }
+  registryId: string
+  pushed: number
+  endpoint: string
+  assets: unknown[]
 }
 
 export interface EvalMetrics {
