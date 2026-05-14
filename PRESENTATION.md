@@ -176,22 +176,20 @@ graph LR
 
 ### Merits
 
-1. **No manual annotation needed for 6/7 categories** — the HSV spectral pipeline works zero-shot on any satellite image, detecting buildings, roads, water, vegetation, and drains without labelled training data
-2. **Dual-model pipeline** — HSV spectral (fast, always available) + YOLOv8 (accurate vehicle detection) complement each other; the system degrades gracefully if YOLO is unavailable
-3. **Trained segmentation model** — DeepLabV3-MobileNetV3 fine-tuned on DeepGlobe provides pixel-level land cover maps beyond bounding boxes
-4. **Full DIGIT integration pathway** — detected assets are structured to the DIGIT Urban Asset Registry schema and can be pushed in one click, enabling immediate municipal governance workflows
-5. **Live satellite imagery** — no pre-uploaded image needed; fetch a fresh tile of any Indian location via ESRI or Bhuvan ISRO in real time
-6. **GIS-ready exports** — GeoJSON, Shapefile (WGS-84), and CSV make results immediately usable in QGIS, ArcGIS, and other GIS tools
-7. **Lightweight deployment** — entire stack (frontend + backend + ML models) runs in a single Docker container on a 512 MB free-tier server
+1. **Zero-shot spectral detection** — HSV pipeline detects 6 asset categories without any labelled training data, working on any satellite image out of the box
+2. **Dual-model pipeline** — spectral + YOLOv8 complement each other; system degrades gracefully if YOLO is unavailable
+3. **Pixel-level segmentation** — DeepLabV3-MobileNetV3 trained on DeepGlobe goes beyond bounding boxes to full land cover classification
+4. **One-click DIGIT push** — assets are structured to the DIGIT schema and pushed to the Urban Asset Registry in a single request
+5. **Live satellite fetch** — fetch a fresh tile of any Indian location via ESRI or Bhuvan ISRO without pre-uploading an image
+6. **Lightweight deployment** — entire stack runs in a single Docker container under 350 MB RAM on a free-tier server
 
 ### Demerits
 
-1. **HSV pipeline is illumination-sensitive** — detection accuracy drops significantly on overcast, shadow-heavy, or low-resolution imagery; a fine-tuned object detection model would be more robust
-2. **No fine-tuned object detector for buildings/roads** — the spectral approach produces false positives on bright non-building surfaces (concrete, bare sand); a YOLOv8 fine-tuned on SpaceNet or INRIA would greatly improve precision
-3. **Segmentation model requires GPU for fast inference** — on CPU, processing a 512×512 tile takes ~2–4 seconds; not suitable for real-time or batch-at-scale use
-4. **No temporal database** — change detection works only between two manually uploaded images; there is no persistent time-series store to automate periodic monitoring
-5. **Mock DIGIT endpoint** — the DIGIT push simulates the API response; real integration would require authentication tokens, tenant configuration, and schema validation against the live DIGIT platform
-6. **Single-tile satellite fetch** — the current 3×3 tile stitch (~900×900 px) covers only ~270 m² at zoom 18; large-area survey would require tiled batch processing
+1. **Illumination-sensitive** — HSV detection degrades on overcast or shadow-heavy imagery; a fine-tuned model would be more robust
+2. **False positives on bright surfaces** — bare concrete and sand can be misclassified as buildings; SpaceNet fine-tuning would improve precision
+3. **CPU-only inference is slow** — segmentation takes ~2–4 s per tile; not suitable for real-time or large-area batch use
+4. **No persistent time-series store** — change detection requires two manually uploaded images; automated periodic monitoring is not yet supported
+5. **Mock DIGIT endpoint** — real integration would require OAuth2, tenant configuration, and schema validation against the live platform
 
 ---
 
