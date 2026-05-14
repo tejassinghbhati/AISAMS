@@ -1,276 +1,263 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Zap, Map, GitCompare, Crosshair, Mail, MapPin, Github, ChevronDown } from 'lucide-react'
+import {
+  ArrowRight, Zap, Map, GitCompare, Crosshair,
+  Mail, MapPin, Github, ChevronDown,
+  ShieldCheck, Satellite, BarChart3, FileDown,
+} from 'lucide-react'
 import HeroDetectionDemo from '../components/HeroDetectionDemo'
 
 const MODULES = [
   {
-    code: '01', accent: '#388bfd', icon: <Crosshair size={15}/>,
+    icon: <Crosshair size={22} />, accent: '#1d4ed8', bg: '#eff6ff',
     title: 'Asset Detection',
-    desc: 'YOLOv8-seg + HSV spectral segmentation identifies buildings, trees, water bodies, drains, roads and vehicles in under a second.',
+    desc: 'YOLOv8-seg + spectral segmentation detects buildings, roads, water bodies, drains and vehicles from any satellite tile.',
   },
   {
-    code: '02', accent: '#a371f7', icon: <Zap size={15}/>,
+    icon: <Zap size={22} />, accent: '#7c3aed', bg: '#f5f3ff',
     title: 'Land Cover Mapping',
-    desc: 'DeepLabV3-MobileNetV3 trained on 792 DeepGlobe WorldView tiles — pixel-level classification across 7 land cover classes.',
+    desc: 'DeepLabV3 trained on DeepGlobe WorldView tiles delivers pixel-level classification across 7 land cover classes.',
   },
   {
-    code: '03', accent: '#3fb950', icon: <Map size={15}/>,
+    icon: <FileDown size={22} />, accent: '#059669', bg: '#ecfdf5',
     title: 'GIS Export',
-    desc: 'Every detection geo-referenced and exported as standards-compliant GeoJSON — ready for QGIS, ArcGIS or eGov DIGIT GIS modules.',
+    desc: 'Every detection geo-referenced and exported as GeoJSON — compatible with QGIS, ArcGIS and eGov DIGIT GIS modules.',
   },
   {
-    code: '04', accent: '#d29922', icon: <GitCompare size={15}/>,
+    icon: <GitCompare size={22} />, accent: '#d97706', bg: '#fffbeb',
     title: 'Change Detection',
-    desc: 'Temporal differencing automatically flags new construction, encroachments, vegetation loss and water body changes between acquisitions.',
+    desc: 'Temporal differencing flags encroachments, new construction, vegetation loss and water changes between acquisitions.',
   },
 ]
 
 const STATS = [
-  { value: '68K+',   label: 'km of rail network' },
-  { value: '7',      label: 'detection classes'  },
-  { value: '59.7%',  label: 'mIoU land cover'    },
-  { value: '<1s',    label: 'inference time'      },
+  { value: '68,000+', label: 'km Rail Network',    color: '#1d4ed8' },
+  { value: '7',       label: 'Detection Classes',  color: '#7c3aed' },
+  { value: '59.7%',   label: 'mIoU Land Cover',    color: '#059669' },
+  { value: '<1 sec',  label: 'Inference Time',      color: '#d97706' },
 ]
 
 const TEAM = [
-  { name: 'Tejas Singh Bhati', role: 'AI · Full-Stack · ML',  initials: 'TB', color: '#388bfd' },
-  { name: 'Team Member',       role: 'Data · GIS · Research', initials: 'TM', color: '#3fb950' },
-  { name: 'Team Member',       role: 'Backend · Infra · API', initials: 'TM', color: '#a371f7' },
+  { name: 'Tejas Singh Bhati', role: 'AI & Full-Stack',  initials: 'TB', color: '#1d4ed8' },
+  { name: 'Team Member',       role: 'Data & GIS',       initials: 'TM', color: '#059669' },
+  { name: 'Team Member',       role: 'Backend & Infra',  initials: 'TM', color: '#7c3aed' },
 ]
 
 export default function LandingPage() {
   const nav = useNavigate()
 
   return (
-    <div className="w-full">
+    <div className="w-full bg-white text-slate-800">
 
-      {/* ═══════════════════════════════ HERO ═════════════════════════════════ */}
-      <section className="relative min-h-[calc(100vh-44px)] flex flex-col items-center justify-center border-b border-border overflow-hidden px-5 py-20">
+      {/* ════════════════════════════ HERO ════════════════════════════════════ */}
+      <section className="relative overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #f0f7ff 0%, #ffffff 50%, #fff7ed 100%)' }}>
 
-        {/* Background — radial glow + grid */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0"
-            style={{
-              backgroundImage: 'radial-gradient(circle, rgba(56,139,253,0.06) 1px, transparent 1px)',
-              backgroundSize: '28px 28px',
-            }}/>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] opacity-20"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(56,139,253,0.35) 0%, transparent 70%)' }}/>
-        </div>
+        {/* Subtle grid */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+            opacity: 0.35,
+          }}/>
 
-        {/* ── Eyebrow ── */}
-        <div className="relative flex items-center gap-2 mb-6">
-          <span className="w-1.5 h-1.5 bg-[#3fb950] inline-block animate-blink"/>
-          <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-tx3">
+        <div className="relative max-w-4xl mx-auto px-6 pt-20 pb-10 text-center">
+
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-xs font-medium mb-7">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block"/>
             Indian Railways × eGov DIGIT Platform · Hackzilla 2026
-          </span>
-        </div>
+          </div>
 
-        {/* ── Title ── */}
-        <div className="relative text-center mb-4">
-          <h1 className="text-[5.5rem] sm:text-[7rem] lg:text-[8.5rem] font-bold leading-none tracking-tight text-tx"
+          {/* Title */}
+          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight text-slate-900 mb-3"
             style={{ letterSpacing: '-0.03em' }}>
             Drishya
           </h1>
-          <p className="font-mono text-[11px] uppercase tracking-[0.5em] text-tx3 mt-2">
+          <p className="text-slate-400 text-sm tracking-[0.4em] uppercase mb-5">
             दृश्य &nbsp;·&nbsp; Vision from Above
           </p>
-        </div>
 
-        {/* ── Description ── */}
-        <p className="relative text-center text-tx2 text-base leading-relaxed max-w-xl mb-10">
-          AI-powered spatial asset intelligence for India's 68,000 km railway network.
-          Detect buildings, encroachments, water bodies and more from any satellite image — in under a second.
-        </p>
+          {/* Subtitle */}
+          <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+            AI-powered spatial asset intelligence for India's railway network.
+            Upload any satellite or drone image to detect buildings, encroachments,
+            water bodies and more — with GIS-ready export.
+          </p>
 
-        {/* ── CTAs ── */}
-        <div className="relative flex items-center gap-3 mb-14">
-          <button onClick={() => nav('/detect')}
-            className="flex items-center gap-2 px-8 py-3 bg-accent font-mono text-[11px] uppercase tracking-[0.2em] font-semibold text-[#07080b] hover:opacity-90 transition-opacity">
-            Start Detection <ArrowRight size={13}/>
+          {/* CTAs */}
+          <div className="flex items-center justify-center gap-3 mb-14">
+            <button onClick={() => nav('/detect')}
+              className="flex items-center gap-2 px-7 py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-200">
+              Start Detection <ArrowRight size={15}/>
+            </button>
+            <button
+              onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex items-center gap-2 px-7 py-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors">
+              Learn More
+            </button>
+          </div>
+
+          {/* Demo panel */}
+          <div className="rounded-xl overflow-hidden shadow-2xl shadow-slate-200 border border-slate-200 max-w-3xl mx-auto">
+            <HeroDetectionDemo />
+          </div>
+
+          {/* Scroll hint */}
+          <button
+            onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
+            className="mt-10 flex flex-col items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors mx-auto">
+            <span className="text-xs">Scroll to explore</span>
+            <ChevronDown size={16} className="animate-bounce"/>
           </button>
-          <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex items-center gap-2 px-8 py-3 border border-border font-mono text-[11px] uppercase tracking-[0.2em] text-tx2 hover:text-tx hover:border-border2 transition-colors">
-            Learn More
-          </button>
         </div>
-
-        {/* ── Live demo panel ── */}
-        <div className="relative w-full max-w-3xl mx-auto">
-          {/* Corner decorators */}
-          {[
-            'absolute -top-px -left-px border-t-2 border-l-2 border-accent/50 w-5 h-5',
-            'absolute -top-px -right-px border-t-2 border-r-2 border-accent/50 w-5 h-5',
-            'absolute -bottom-px -left-px border-b-2 border-l-2 border-accent/50 w-5 h-5',
-            'absolute -bottom-px -right-px border-b-2 border-r-2 border-accent/50 w-5 h-5',
-          ].map((c, i) => <div key={i} className={c}/>)}
-          <HeroDetectionDemo />
-        </div>
-
-        {/* ── Scroll hint ── */}
-        <button
-          onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
-          className="relative mt-10 flex flex-col items-center gap-1.5 text-tx3 hover:text-tx2 transition-colors">
-          <span className="font-mono text-[8px] uppercase tracking-[0.2em]">Scroll</span>
-          <ChevronDown size={14} className="animate-bounce"/>
-        </button>
       </section>
 
-      {/* ═════════════════════════════ STATS STRIP ════════════════════════════ */}
-      <section id="stats" className="border-b border-border">
+      {/* ════════════════════════════ STATS ═══════════════════════════════════ */}
+      <section id="stats" className="border-y border-slate-200 bg-white">
         <div className="max-w-4xl mx-auto">
-          <div className="flex gap-px bg-border">
+          <div className="grid grid-cols-4 divide-x divide-slate-200">
             {STATS.map(s => (
-              <div key={s.label} className="flex-1 bg-surface px-6 py-5 text-center">
-                <div className="font-mono text-2xl font-bold text-tx mb-1">{s.value}</div>
-                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-tx3">{s.label}</div>
+              <div key={s.label} className="px-8 py-8 text-center">
+                <div className="text-3xl font-bold mb-1" style={{ color: s.color }}>{s.value}</div>
+                <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═════════════════════════════ MODULES ═══════════════════════════════ */}
-      <section className="border-b border-border py-20 px-5">
+      {/* ════════════════════════════ MODULES ════════════════════════════════ */}
+      <section className="py-20 px-6 bg-slate-50 border-b border-slate-200">
         <div className="max-w-4xl mx-auto">
 
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <div className="h-px w-8 bg-border2"/>
-              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-tx3">What Drishya Does</span>
-              <div className="h-px w-8 bg-border2"/>
-            </div>
-            <h2 className="text-2xl font-bold text-tx">Four-module geospatial pipeline</h2>
+            <p className="text-blue-700 text-xs font-semibold uppercase tracking-widest mb-3">What Drishya Does</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-3">Four-module geospatial pipeline</h2>
+            <p className="text-slate-500 text-sm max-w-lg mx-auto">
+              From raw satellite imagery to actionable, exportable asset intelligence.
+            </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-px bg-border">
+          <div className="grid sm:grid-cols-2 gap-5">
             {MODULES.map(m => (
-              <div key={m.code} className="bg-surface p-7 group hover:bg-panel transition-colors">
-                <div className="flex items-start justify-between mb-5">
-                  <div className="p-2 border" style={{ borderColor: m.accent + '35', color: m.accent, background: m.accent + '0c' }}>
-                    {m.icon}
-                  </div>
-                  <span className="font-mono text-[9px] text-tx3 border border-border px-2 py-0.5">{m.code}</span>
+              <div key={m.title}
+                className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md hover:border-slate-300 transition-all">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                  style={{ background: m.bg, color: m.accent }}>
+                  {m.icon}
                 </div>
-                <h3 className="font-mono text-[11px] uppercase tracking-[0.15em] text-tx mb-2.5">{m.title}</h3>
-                <p className="text-tx3 text-[12px] leading-relaxed">{m.desc}</p>
-                <div className="mt-5 h-px" style={{ background: `linear-gradient(90deg, ${m.accent}40, transparent)` }}/>
+                <h3 className="font-semibold text-slate-900 mb-2">{m.title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{m.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═════════════════════════════ ABOUT ══════════════════════════════════ */}
-      <section id="about" className="border-b border-border py-20 px-5 scroll-mt-11">
+      {/* ════════════════════════════ ABOUT ══════════════════════════════════ */}
+      <section id="about" className="py-20 px-6 bg-white border-b border-slate-200 scroll-mt-11">
         <div className="max-w-4xl mx-auto">
 
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <div className="h-px w-8 bg-border2"/>
-              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-tx3">About the Project</span>
-              <div className="h-px w-8 bg-border2"/>
-            </div>
-            <h2 className="text-2xl font-bold text-tx mb-3">Built for India's Railway Network</h2>
-            <p className="text-tx2 text-sm max-w-xl mx-auto leading-relaxed">
-              Drishya automates the detection and monitoring of spatial assets across
-              India's railway land — helping railway divisions and municipalities
-              act on ground truth before issues escalate.
+            <p className="text-blue-700 text-xs font-semibold uppercase tracking-widest mb-3">About the Project</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-3">Built for India's Railway Network</h2>
+            <p className="text-slate-500 text-sm max-w-xl mx-auto leading-relaxed">
+              Drishya automates detection and monitoring of spatial assets across India's railway land,
+              helping divisions act on ground truth before issues escalate.
             </p>
           </div>
 
-          {/* Two-col: narrative + metrics */}
-          <div className="grid lg:grid-cols-5 gap-6 mb-10">
+          {/* Narrative + metrics */}
+          <div className="grid lg:grid-cols-5 gap-6 mb-8">
 
-            {/* Narrative — 3 cols */}
-            <div className="lg:col-span-3 border border-border bg-surface p-6">
-              <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-tx3 mb-5 flex items-center gap-2">
-                <span className="w-1 h-1 bg-accent inline-block"/>
-                Mission
+            {/* Narrative */}
+            <div className="lg:col-span-3 rounded-xl border border-slate-200 p-7 bg-slate-50">
+              <div className="flex items-center gap-2 mb-5">
+                <ShieldCheck size={16} className="text-blue-700"/>
+                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Mission</span>
               </div>
-              <div className="space-y-3.5 text-tx2 text-sm leading-relaxed">
+              <div className="space-y-3.5 text-slate-600 text-sm leading-relaxed">
                 <p>
                   India's 68,000 km railway network manages over
-                  <span className="text-tx font-medium"> 1.2 million acres</span> of land.
-                  Manual surveys are slow, expensive and leave months-long gaps during which
-                  encroachments and structural problems go undetected.
+                  <strong className="text-slate-900"> 1.2 million acres</strong> of land.
+                  Manual surveys are slow, expensive and leave months-long gaps
+                  during which encroachments and structural problems go undetected.
                 </p>
                 <p>
-                  Drishya processes satellite, aerial or drone imagery through a hybrid pipeline —
-                  YOLOv8-seg for object-level detection, DeepGlobe land-cover segmentation for
-                  terrain classification — producing a fully geo-referenced asset inventory in
-                  under a second.
+                  Drishya processes satellite or drone imagery through a hybrid AI pipeline
+                  — YOLOv8-seg for object detection, DeepGlobe-trained segmentation for terrain
+                  classification — producing a geo-referenced asset inventory in under a second.
                 </p>
                 <p>
-                  Results are exported as GeoJSON ready for eGov DIGIT's Urban Infrastructure
-                  modules, closing the loop from raw satellite data to actionable ground truth.
+                  Results export as GeoJSON ready for eGov DIGIT's Urban Infrastructure
+                  modules, closing the loop from raw imagery to actionable ground truth.
                 </p>
               </div>
 
               {/* Tech chips */}
-              <div className="mt-6 flex flex-wrap gap-px bg-border">
+              <div className="mt-6 flex flex-wrap gap-2">
                 {[
-                  ['YOLOv8-seg', '#388bfd'], ['DeepLabV3', '#3fb950'],
-                  ['FastAPI',    '#a371f7'], ['React + Vite', '#d29922'],
-                  ['PyTorch',    '#f85149'], ['SpaceNet SN4', '#388bfd'],
-                  ['DeepGlobe',  '#3fb950'], ['WorldView-2',  '#8b949e'],
+                  ['YOLOv8-seg', '#1d4ed8'], ['DeepLabV3', '#059669'],
+                  ['FastAPI',    '#7c3aed'], ['React + Vite', '#d97706'],
+                  ['PyTorch',    '#dc2626'], ['SpaceNet SN4', '#1d4ed8'],
+                  ['DeepGlobe',  '#059669'], ['WorldView-2',  '#64748b'],
                 ].map(([n, c]) => (
-                  <div key={n} className="bg-panel px-3 py-1.5 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5" style={{ background: c }}/>
-                    <span className="font-mono text-[9px] text-tx2">{n}</span>
-                  </div>
+                  <span key={n} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white text-xs text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }}/>
+                    {n}
+                  </span>
                 ))}
               </div>
             </div>
 
-            {/* Metrics — 2 cols */}
-            <div className="lg:col-span-2 border border-border bg-surface">
-              <div className="px-5 py-4 border-b border-border bg-panel flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#3fb950] inline-block"/>
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-tx2">Model Metrics</span>
+            {/* Metrics */}
+            <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-200 bg-white flex items-center gap-2">
+                <BarChart3 size={14} className="text-blue-700"/>
+                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Model Performance</span>
               </div>
-              <div className="flex flex-col gap-px bg-border">
+              <div className="divide-y divide-slate-200">
                 {[
-                  { label: 'Precision',   value: '99.5%', color: '#3fb950', bar: 0.995 },
-                  { label: 'Recall',      value: '34.4%', color: '#d29922', bar: 0.344 },
-                  { label: 'F1 Score',    value: '50.8%', color: '#388bfd', bar: 0.508 },
-                  { label: 'mIoU (LC)',   value: '59.7%', color: '#a371f7', bar: 0.597 },
+                  { label: 'Precision',  value: '99.5%', pct: 99.5, color: '#059669' },
+                  { label: 'Recall',     value: '34.4%', pct: 34.4, color: '#d97706' },
+                  { label: 'F1 Score',   value: '50.8%', pct: 50.8, color: '#1d4ed8' },
+                  { label: 'mIoU (LC)',  value: '59.7%', pct: 59.7, color: '#7c3aed' },
                 ].map(m => (
-                  <div key={m.label} className="bg-surface px-5 py-4">
+                  <div key={m.label} className="px-5 py-4 bg-white">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-tx3">{m.label}</span>
-                      <span className="font-mono text-sm font-bold" style={{ color: m.color }}>{m.value}</span>
+                      <span className="text-xs text-slate-500 font-medium">{m.label}</span>
+                      <span className="text-sm font-bold" style={{ color: m.color }}>{m.value}</span>
                     </div>
-                    <div className="h-px bg-border overflow-hidden">
-                      <div className="h-full" style={{ width: `${m.bar * 100}%`, background: m.color }}/>
+                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${m.pct}%`, background: m.color }}/>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="px-5 py-3 border-t border-border bg-panel">
-                <span className="font-mono text-[8px] text-tx3">SpaceNet SN4 · WorldView-2 · IoU ≥ 0.5</span>
+              <div className="px-5 py-3 border-t border-slate-200 bg-white">
+                <p className="text-[10px] text-slate-400">SpaceNet SN4 · WorldView-2 · IoU ≥ 0.5</p>
               </div>
             </div>
           </div>
 
           {/* Team */}
-          <div className="border border-border bg-surface">
-            <div className="px-5 py-4 border-b border-border bg-panel flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-accent inline-block"/>
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-tx2">Team</span>
-              <span className="font-mono text-[9px] text-tx3 ml-auto">Hackzilla 2026</span>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 bg-white flex items-center gap-2">
+              <Satellite size={14} className="text-blue-700"/>
+              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Our Team</span>
+              <span className="ml-auto text-xs text-slate-400">Hackzilla 2026</span>
             </div>
-            <div className="grid sm:grid-cols-3 gap-px bg-border">
+            <div className="grid sm:grid-cols-3 divide-x divide-slate-200">
               {TEAM.map((t, i) => (
-                <div key={i} className="bg-surface px-5 py-5 flex items-center gap-4">
-                  <div className="w-10 h-10 border border-border2 flex items-center justify-center shrink-0"
-                    style={{ background: t.color + '10' }}>
-                    <span className="font-mono text-[11px] font-bold" style={{ color: t.color }}>{t.initials}</span>
+                <div key={i} className="px-6 py-5 flex items-center gap-4 bg-white">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-white"
+                    style={{ background: t.color }}>
+                    {t.initials}
                   </div>
                   <div>
-                    <div className="font-mono text-[10px] text-tx">{t.name}</div>
-                    <div className="font-mono text-[9px] text-tx3 mt-0.5">{t.role}</div>
+                    <div className="text-sm font-semibold text-slate-800">{t.name}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{t.role}</div>
                   </div>
                 </div>
               ))}
@@ -280,44 +267,41 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═════════════════════════════ CONTACT ════════════════════════════════ */}
-      <section id="contact" className="py-20 px-5 scroll-mt-11">
+      {/* ════════════════════════════ CONTACT ════════════════════════════════ */}
+      <section id="contact" className="py-20 px-6 bg-slate-50 scroll-mt-11">
         <div className="max-w-4xl mx-auto">
 
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <div className="h-px w-8 bg-border2"/>
-              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-tx3">Contact</span>
-              <div className="h-px w-8 bg-border2"/>
-            </div>
-            <h2 className="text-2xl font-bold text-tx mb-3">Get in Touch</h2>
-            <p className="text-tx2 text-sm max-w-md mx-auto">
+            <p className="text-blue-700 text-xs font-semibold uppercase tracking-widest mb-3">Contact</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-3">Get in Touch</h2>
+            <p className="text-slate-500 text-sm max-w-md mx-auto">
               Interested in deploying Drishya for a railway division, municipal body or research project?
             </p>
           </div>
 
           <div className="grid lg:grid-cols-5 gap-6">
 
-            {/* Info cards — 2 cols */}
-            <div className="lg:col-span-2 flex flex-col gap-px bg-border">
+            {/* Info */}
+            <div className="lg:col-span-2 flex flex-col gap-4">
               {[
-                { icon: <Mail size={12}/>,   label: 'Email',    value: 'tejassinghbhati077@gmail.com', accent: '#388bfd' },
-                { icon: <Github size={12}/>,  label: 'GitHub',   value: 'tejassinghbhati/AISAMS',        accent: '#a371f7' },
-                { icon: <MapPin size={12}/>,  label: 'Location', value: 'India · eGov DIGIT Platform',   accent: '#3fb950' },
+                { icon: <Mail size={16}/>,   label: 'Email',    value: 'tejassinghbhati077@gmail.com', color: '#1d4ed8', bg: '#eff6ff' },
+                { icon: <Github size={16}/>,  label: 'GitHub',   value: 'tejassinghbhati/AISAMS',       color: '#7c3aed', bg: '#f5f3ff' },
+                { icon: <MapPin size={16}/>,  label: 'Location', value: 'India · eGov DIGIT Platform',  color: '#059669', bg: '#ecfdf5' },
               ].map(c => (
-                <div key={c.label} className="bg-surface px-5 py-5 flex items-start gap-4">
-                  <div className="p-2 border border-border mt-0.5" style={{ color: c.accent }}>
+                <div key={c.label} className="flex items-center gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:shadow-sm transition-shadow">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: c.bg, color: c.color }}>
                     {c.icon}
                   </div>
                   <div>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-tx3 mb-1">{c.label}</div>
-                    <div className="font-mono text-[10px] text-tx leading-tight">{c.value}</div>
+                    <div className="text-xs text-slate-400 uppercase tracking-wider font-medium">{c.label}</div>
+                    <div className="text-sm text-slate-700 font-medium mt-0.5">{c.value}</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Form — 3 cols */}
+            {/* Form */}
             <div className="lg:col-span-3">
               <ContactForm />
             </div>
@@ -325,15 +309,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <div className="border-t border-border py-5 px-5">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <span className="font-mono text-[9px] text-tx3 uppercase tracking-widest">
-            Drishya · दृश्य · Hackzilla 2026
-          </span>
-          <span className="font-mono text-[9px] text-tx3">YOLOv8 + DeepLabV3 + FastAPI + React</span>
+      {/* Footer */}
+      <footer className="bg-slate-900 text-slate-400 py-8 px-6">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>
+            <span className="text-white font-semibold text-sm">Drishya</span>
+            <span className="text-slate-500 text-xs ml-2">· दृश्य · Vision from Above</span>
+          </div>
+          <span className="text-xs">Built for Hackzilla 2026 · Indian Railways × eGov DIGIT</span>
         </div>
-      </div>
+      </footer>
 
     </div>
   )
@@ -345,43 +330,45 @@ function ContactForm() {
 
   if (sent) {
     return (
-      <div className="border border-[#3fb950]/40 h-full flex flex-col items-center justify-center gap-3 p-14"
-        style={{ background: 'rgba(63,185,80,0.04)' }}>
-        <span className="w-2 h-2 bg-[#3fb950] inline-block"/>
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#3fb950]">Message Sent</span>
-        <span className="font-mono text-[9px] text-tx3 text-center">We'll get back to you shortly.</span>
+      <div className="rounded-xl border border-green-200 bg-green-50 h-full flex flex-col items-center justify-center gap-3 p-14">
+        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+          <span className="text-green-600 text-lg">✓</span>
+        </div>
+        <p className="font-semibold text-green-800">Message sent!</p>
+        <p className="text-sm text-green-600 text-center">We'll get back to you shortly.</p>
       </div>
     )
   }
 
   return (
-    <form onSubmit={e => { e.preventDefault(); setSent(true) }} className="flex flex-col gap-px bg-border">
+    <form onSubmit={e => { e.preventDefault(); setSent(true) }}
+      className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col gap-4">
       {[
         { id: 'name',  label: 'Full Name',     type: 'text',  ph: 'Your name'       },
         { id: 'email', label: 'Email Address', type: 'email', ph: 'you@example.com' },
       ].map(f => (
-        <div key={f.id} className="bg-surface px-5 pt-4 pb-4">
-          <label className="font-mono text-[8px] uppercase tracking-[0.2em] text-tx3 block mb-2" htmlFor={f.id}>
+        <div key={f.id}>
+          <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5" htmlFor={f.id}>
             {f.label}
           </label>
           <input id={f.id} type={f.type} required placeholder={f.ph}
             value={form[f.id as 'name' | 'email']}
             onChange={e => setForm(p => ({ ...p, [f.id]: e.target.value }))}
-            className="w-full bg-bg border border-border px-3 py-2.5 font-mono text-[11px] text-tx placeholder:text-tx3 focus:outline-none focus:border-accent transition-colors"/>
+            className="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"/>
         </div>
       ))}
-      <div className="bg-surface px-5 pt-4 pb-4">
-        <label className="font-mono text-[8px] uppercase tracking-[0.2em] text-tx3 block mb-2" htmlFor="message">
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5" htmlFor="message">
           Message
         </label>
         <textarea id="message" required rows={4} placeholder="Tell us about your use case…"
           value={form.message}
           onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
-          className="w-full bg-bg border border-border px-3 py-2.5 font-mono text-[11px] text-tx placeholder:text-tx3 focus:outline-none focus:border-accent transition-colors resize-none"/>
+          className="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors resize-none"/>
       </div>
       <button type="submit"
-        className="bg-accent font-mono text-[11px] uppercase tracking-[0.2em] font-semibold text-[#07080b] py-4 hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-        Send Message <ArrowRight size={12}/>
+        className="w-full py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm">
+        Send Message <ArrowRight size={14}/>
       </button>
     </form>
   )

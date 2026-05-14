@@ -8,29 +8,38 @@ import SegmentPage from './pages/SegmentPage'
 
 export default function App() {
   const { pathname } = useLocation()
+  const isLanding = pathname === '/'
   const wide = pathname === '/results'
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg">
+    <div className="min-h-screen flex flex-col" style={{ background: isLanding ? '#ffffff' : '#07080b' }}>
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-bg">
-        <div className={`${wide ? 'max-w-screen-2xl' : 'max-w-7xl'} mx-auto px-5 h-11 flex items-center gap-4`}>
+      <header className="sticky top-0 z-50"
+        style={isLanding
+          ? { borderBottom: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+          : { borderBottom: '1px solid #21262d', background: '#07080b' }
+        }>
+        <div className={`${wide ? 'max-w-screen-2xl' : 'max-w-4xl'} mx-auto px-5 h-14 flex items-center gap-4`}>
 
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-6 h-6 border border-accent/60 flex items-center justify-center bg-accent/8">
-              <Eye size={12} className="text-accent"/>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: isLanding ? '#1d4ed8' : 'rgba(56,139,253,0.12)', border: isLanding ? 'none' : '1px solid rgba(56,139,253,0.4)' }}>
+              <Eye size={14} style={{ color: isLanding ? '#ffffff' : '#388bfd' }}/>
             </div>
             <div className="leading-none">
-              <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-tx">Drishya</div>
-              <div className="font-mono text-[7px] tracking-[0.1em] uppercase text-tx3 mt-px">
+              <div className="font-bold text-[13px] tracking-wide" style={{ color: isLanding ? '#1e293b' : '#c9d1d9' }}>
+                Drishya
+              </div>
+              <div className="text-[8px] tracking-wider uppercase font-medium mt-px"
+                style={{ color: isLanding ? '#94a3b8' : '#484f58' }}>
                 Indian Railways · eGov DIGIT
               </div>
             </div>
           </NavLink>
 
-          <div className="w-px h-4 bg-border2"/>
+          <div className="w-px h-5 mx-1" style={{ background: isLanding ? '#e2e8f0' : '#21262d' }}/>
 
           {/* Nav */}
           <nav className="flex items-center">
@@ -41,22 +50,35 @@ export default function App() {
               { to: '/segment', label: 'Land Cover', icon: <ScanSearch size={11}/>, end: false },
             ].map(n => (
               <NavLink key={n.to} to={n.to} end={n.end}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 h-11 font-mono text-[10px] uppercase tracking-[0.12em] border-b-2 transition-colors ${
-                    isActive
-                      ? 'text-accent border-accent'
-                      : 'text-tx2 border-transparent hover:text-tx hover:border-border2'
-                  }`
-                }>
+                className={({ isActive }) => {
+                  const base = 'flex items-center gap-1.5 px-3 h-14 text-xs font-medium border-b-2 transition-colors'
+                  if (isLanding) {
+                    return `${base} ${isActive
+                      ? 'text-blue-700 border-blue-700'
+                      : 'text-slate-500 border-transparent hover:text-slate-800 hover:border-slate-300'}`
+                  }
+                  return `${base} font-mono uppercase tracking-wider text-[10px] ${isActive
+                    ? 'text-[#388bfd] border-[#388bfd]'
+                    : 'text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:border-[#30363d]'}`
+                }}>
                 {n.icon}{n.label}
               </NavLink>
             ))}
           </nav>
 
-          {/* System status */}
+          {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-[#3fb950] inline-block animate-blink"/>
-            <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-tx3">System Online</span>
+            {isLanding ? (
+              <NavLink to="/detect"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition-colors">
+                Open Tool <Activity size={11}/>
+              </NavLink>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950] inline-block animate-blink"/>
+                <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-[#484f58]">System Online</span>
+              </>
+            )}
           </div>
         </div>
       </header>
