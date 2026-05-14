@@ -276,6 +276,147 @@ def segment_sample(filename: str):
         raise HTTPException(500, str(exc))
 
 
+# ──────────────────────────────────────────────── live satellite fetch + detect ──
+
+@app.post("/api/satellite/fetch")
+async def satellite_fetch(
+    lat:    float = Form(...),
+    lon:    float = Form(...),
+    zoom:   int   = Form(18),
+    source: str   = Form("esri"),
+):
+    """Fetch a live satellite tile from ESRI or Bhuvan, then run asset detection."""
+    from satellite import fetch_satellite_image
+
+    job_id  = uuid.uuid4().hex[:8]
+    out_dir = RESULTS_DIR / job_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        img, gsd_m = fetch_satellite_image(lat, lon, zoom=zoom, source=source)
+    except Exception as exc:
+        raise HTTPException(502, f"Satellite fetch failed: {exc}")
+
+    # Save raw tile so the frontend can use it as the canvas base image
+    src_path = out_dir / "source.jpg"
+    img.save(src_path, "JPEG", quality=92)
+
+    # Save a copy to uploads for the detector
+    img_path = UPLOAD_DIR / f"{job_id}_sat.jpg"
+    img.save(img_path, "JPEG", quality=92)
+
+    try:
+        result = detector.detect(
+            str(img_path), gsd_m=gsd_m, lat=lat, lon=lon,
+            job_id=job_id, out_dir=str(out_dir),
+        )
+        result["source_url"] = f"/results/{job_id}/source.jpg"
+        _jobs[job_id] = result
+        return result
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+
+# ──────────────────────────────────────────────────────── shapefile export ──
+
+@app.get("/api/export/{job_id}/shapefile")
+def export_shapefile(job_id: str):
+    if job_id not in _jobs:
+        raise HTTPException(404, "Job not found")
+
+    try:
+        import shapefile  # pyshp
+    except ImportError:
+        raise HTTPException(501, "pyshp not installed")
+
+    import tempfile, zipfile
+
+    job = _jobs[job_id]
+    buf = io.BytesIO()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / f"assets_{job_id}"
+        w = shapefile.Writer(str(base), shapeType=shapefile.POLYGON)
+        w.field("ID",         "C",  8)
+        w.field("CATEGORY",   "C", 20)
+        w.field("CONFIDENCE", "N",  6, 3)
+        w.field("AREA_SQM",   "N", 12, 2)
+
+        for det in job.get("detections", []):
+            geom = det.get("geometry")
+            if geom and geom.get("type") == "Polygon":
+                w.poly([geom["coordinates"][0]])
+                w.record(
+                    det["id"], det["category"],
+                    det["confidence"], det.get("area_sqm", 0),
+                )
+        w.close()
+
+        # WGS-84 projection file
+        (Path(tmp) / f"assets_{job_id}.prj").write_text(
+            'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'
+            'SPHEROID["WGS_1984",6378137.0,298.257223563]],'
+            'PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]'
+        )
+
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for ext in (".shp", ".shx", ".dbf", ".prj"):
+                f = Path(tmp) / f"assets_{job_id}{ext}"
+                if f.exists():
+                    zf.write(f, f.name)
+
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=assets_{job_id}.zip"},
+    )
+
+
+# ────────────────────────────────────────── mock DIGIT Urban Asset Registry ──
+
+_DIGIT_CATEGORY_MAP = {
+    "building":  "BUILDING",
+    "road":      "ROAD",
+    "water":     "WATER_BODY",
+    "tree":      "TREE",
+    "park":      "PARK",
+    "drain":     "DRAIN",
+    "vehicle":   "VEHICLE",
+}
+
+@app.post("/api/digit/push/{job_id}")
+def digit_push(job_id: str):
+    if job_id not in _jobs:
+        raise HTTPException(404, "Job not found")
+
+    job = _jobs[job_id]
+    assets = []
+    for det in job.get("detections", []):
+        c = det.get("centroid", {})
+        assets.append({
+            "tenantId":      "in.railways",
+            "assetId":       det["id"],
+            "assetCategory": _DIGIT_CATEGORY_MAP.get(det["category"], det["category"].upper()),
+            "assetStatus":   "ACTIVE",
+            "source":        "DRISHYA_AI",
+            "confidence":    det["confidence"],
+            "areaSqm":       det.get("area_sqm"),
+            "geoLocation": {
+                "latitude":  c.get("lat"),
+                "longitude": c.get("lon"),
+            },
+        })
+
+    return {
+        "responseInfo": {"status": "SUCCESSFUL", "apiId": "asset-registry", "ver": "v1"},
+        "registryId":   f"DRISHYA-{job_id.upper()}",
+        "pushed":       len(assets),
+        "endpoint":     "https://digit.org/api/asset-registry/v1/assets (mock)",
+        "assets":       assets[:10],
+    }
+
+
 # Serve the React SPA for all non-API paths (must be mounted last)
 _STATIC = Path("static")
 if _STATIC.exists():
