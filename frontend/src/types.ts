@@ -43,6 +43,24 @@ export interface DetectionResult {
   annotated_url: string
 }
 
+export interface EvalMetrics {
+  gt_count: number
+  pred_count: number
+  tp: number
+  precision: number
+  recall: number
+  f1: number
+}
+
+export interface EvalSummary {
+  available: boolean
+  tiles?: number
+  avg_precision?: number
+  avg_recall?: number
+  avg_f1?: number
+  per_tile?: Array<{ tile: string } & EvalMetrics>
+}
+
 export interface ChangeItem {
   type: string
   bbox: BBox

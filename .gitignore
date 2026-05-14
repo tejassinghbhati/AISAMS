@@ -1,0 +1,59 @@
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.env
+.venv
+venv/
+env/
+*.pyc
+
+# ── Node / Frontend ───────────────────────────────────
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.yarn/
+
+# ── Runtime artifacts ─────────────────────────────────
+backend/uploads/
+backend/results/
+backend/samples/
+backend/spacenet_data/
+*.tar.gz
+*.tar
+*.zip
+
+# ── ML model weights (large binaries) ─────────────────
+*.pt
+*.pth
+*.onnx
+*.weights
+*.h5
+
+# ── IDE / OS ──────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets ───────────────────────────────────────────
+.env
+.env.*
+*.key
+*.pem
+credentials.json

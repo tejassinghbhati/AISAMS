@@ -1,11 +1,13 @@
-import uuid
+import io
+import json
 import shutil
+import uuid
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from detector import SpatialAssetDetector
@@ -21,24 +23,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR  = Path("uploads")
 RESULTS_DIR = Path("results")
-UPLOAD_DIR.mkdir(exist_ok=True)
-RESULTS_DIR.mkdir(exist_ok=True)
+SAMPLES_DIR = Path("samples")
+for d in (UPLOAD_DIR, RESULTS_DIR, SAMPLES_DIR):
+    d.mkdir(exist_ok=True)
 
 app.mount("/results", StaticFiles(directory="results"), name="results")
+app.mount("/samples", StaticFiles(directory="samples"),  name="samples")
 
-detector = SpatialAssetDetector()
+detector        = SpatialAssetDetector()
 change_detector = ChangeDetector()
 
-# In-memory store — sufficient for a demo/hackathon
 _jobs: dict = {}
 
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 
 def _save_upload(file: UploadFile, stem: str) -> Path:
-    suffix = Path(file.filename).suffix.lower()
+    suffix = Path(file.filename or "x.jpg").suffix.lower()
     if suffix not in ALLOWED_EXT:
         raise HTTPException(400, f"Unsupported format: {suffix}")
     path = UPLOAD_DIR / f"{stem}{suffix}"
@@ -47,21 +50,92 @@ def _save_upload(file: UploadFile, stem: str) -> Path:
     return path
 
 
+# ──────────────────────────────────────────────────────────────────── health ──
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "yolo_available": detector.yolo_available}
 
 
+# ─────────────────────────────────────────────────────────────────── samples ──
+
+@app.get("/api/samples")
+def list_samples():
+    """Return manifest of available demo sample images, including SpaceNet tiles."""
+    manifest_path = SAMPLES_DIR / "manifest.json"
+    if not manifest_path.exists():
+        return {
+            "samples": [],
+            "hint": "Run  python download_samples.py  OR  python process_spacenet.py --tar summaryData.tar.gz",
+        }
+    items = json.loads(manifest_path.read_text())
+    for item in items:
+        item["url"]       = f"/samples/{item['file']}"
+        item["available"] = (SAMPLES_DIR / item["file"]).exists()
+        if item.get("gt_geojson"):
+            item["gt_url"] = f"/samples/{Path(item['gt_geojson']).name}"
+    return {"samples": items}
+
+
+@app.get("/api/eval")
+def get_eval_summary():
+    """Return detector evaluation summary produced by process_spacenet.py --evaluate."""
+    eval_path = SAMPLES_DIR / "eval_summary.json"
+    if not eval_path.exists():
+        return {"available": False, "hint": "Run process_spacenet.py --evaluate to generate"}
+    data = json.loads(eval_path.read_text())
+    data["available"] = True
+    return data
+
+
+@app.post("/api/samples/{filename}/detect")
+def detect_sample(filename: str):
+    """Run detection on one of the bundled demo images."""
+    safe = Path(filename).name
+    img_path = SAMPLES_DIR / safe
+    if not img_path.exists():
+        raise HTTPException(404, f"Sample '{safe}' not found. Run download_samples.py first.")
+
+    manifest_path = SAMPLES_DIR / "manifest.json"
+    meta = {}
+    if manifest_path.exists():
+        for item in json.loads(manifest_path.read_text()):
+            if item["file"] == safe:
+                meta = item
+                break
+
+    job_id  = uuid.uuid4().hex[:8]
+    out_dir = RESULTS_DIR / job_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result = detector.detect(
+            str(img_path),
+            gsd_m=meta.get("gsd", 0.5),
+            lat=meta.get("lat"),
+            lon=meta.get("lon"),
+            job_id=job_id,
+            out_dir=str(out_dir),
+        )
+        result["sample_label"] = meta.get("label", safe)
+        _jobs[job_id] = result
+        return result
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+
+# ──────────────────────────────────────────────────────────────────── detect ──
+
 @app.post("/api/detect")
 async def detect_assets(
     file: UploadFile = File(...),
     gsd_m: Optional[float] = Form(0.5),
-    lat: Optional[float] = Form(None),
-    lon: Optional[float] = Form(None),
+    lat:   Optional[float] = Form(None),
+    lon:   Optional[float] = Form(None),
 ):
-    job_id = uuid.uuid4().hex[:8]
+    job_id   = uuid.uuid4().hex[:8]
     img_path = _save_upload(file, job_id)
-    out_dir = RESULTS_DIR / job_id
+    out_dir  = RESULTS_DIR / job_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -79,16 +153,18 @@ async def detect_assets(
         raise HTTPException(500, str(exc))
 
 
+# ────────────────────────────────────────────────────────────── change detect ──
+
 @app.post("/api/change")
 async def detect_changes(
     before: UploadFile = File(...),
-    after: UploadFile = File(...),
-    gsd_m: Optional[float] = Form(0.5),
+    after:  UploadFile = File(...),
+    gsd_m:  Optional[float] = Form(0.5),
 ):
-    job_id = uuid.uuid4().hex[:8]
+    job_id      = uuid.uuid4().hex[:8]
     before_path = _save_upload(before, f"{job_id}_before")
     after_path  = _save_upload(after,  f"{job_id}_after")
-    out_dir = RESULTS_DIR / job_id
+    out_dir     = RESULTS_DIR / job_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -100,6 +176,8 @@ async def detect_changes(
     except Exception as exc:
         raise HTTPException(500, str(exc))
 
+
+# ──────────────────────────────────────────────────────────────────── export ──
 
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str):
