@@ -13,7 +13,7 @@ MODEL_PATH = "segmentation/deepglobe_seg.pt"
 
 def build_model(pretrained: bool = True) -> nn.Module:
     weights = DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT if pretrained else None
-    model = deeplabv3_mobilenet_v3_large(weights=weights)
+    model = deeplabv3_mobilenet_v3_large(weights=weights, aux_loss=True)
     # Replace final classifiers for NUM_CLASSES
     model.classifier[4]     = nn.Conv2d(256, NUM_CLASSES, kernel_size=1)
     model.aux_classifier[4] = nn.Conv2d(10,  NUM_CLASSES, kernel_size=1)
