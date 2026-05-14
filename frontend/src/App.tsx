@@ -1,8 +1,8 @@
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
-import { Satellite, GitCompare, Activity, Layers, ScanSearch } from 'lucide-react'
-import UploadPage from './pages/UploadPage'
+import { Crosshair, GitCompare, Activity, ScanSearch } from 'lucide-react'
+import UploadPage  from './pages/UploadPage'
 import ResultsPage from './pages/ResultsPage'
-import ChangePage from './pages/ChangePage'
+import ChangePage  from './pages/ChangePage'
 import SegmentPage from './pages/SegmentPage'
 
 export default function App() {
@@ -10,66 +10,62 @@ export default function App() {
   const wide = pathname === '/results'
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen flex flex-col bg-bg">
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-slate-800/80"
-        style={{ background: 'rgba(2,8,23,0.85)', backdropFilter: 'blur(16px)' }}>
-        <div className={`${wide ? 'max-w-screen-2xl' : 'max-w-7xl'} mx-auto px-5 h-14 flex items-center gap-5`}>
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-border bg-bg">
+        <div className={`${wide ? 'max-w-screen-2xl' : 'max-w-7xl'} mx-auto px-5 h-11 flex items-center gap-4`}>
 
           {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-900/40">
-              <Satellite size={15} className="text-white"/>
+          <NavLink to="/" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="w-6 h-6 border border-accent/60 flex items-center justify-center bg-accent/8">
+              <Crosshair size={13} className="text-accent" />
             </div>
             <div className="leading-none">
-              <div className="text-sm font-bold text-white tracking-tight">SpatialAI</div>
-              <div className="text-[10px] text-slate-500 -mt-0.5 tracking-wide">INDIAN RAILWAYS · eGOV DIGIT</div>
+              <div className="text-[11px] font-bold tracking-[0.15em] uppercase text-tx">SPATIALAI</div>
+              <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-tx3 mt-px">INDIAN RAILWAYS · EGOV DIGIT</div>
             </div>
           </NavLink>
 
-          {/* Divider */}
-          <div className="h-5 w-px bg-slate-800 hidden sm:block"/>
+          <div className="w-px h-4 bg-border2" />
 
           {/* Nav */}
-          <nav className="flex items-center gap-1">
-            <NavLink to="/" end className={({ isActive }) => navCls(isActive, 'blue')}>
-              <Activity size={13}/> Detect Assets
-            </NavLink>
-            <NavLink to="/change" className={({ isActive }) => navCls(isActive, 'orange')}>
-              <GitCompare size={13}/> Change Detection
-            </NavLink>
-            <NavLink to="/segment" className={({ isActive }) => navCls(isActive, 'emerald')}>
-              <ScanSearch size={13}/> Land Cover
-            </NavLink>
+          <nav className="flex items-center">
+            {[
+              { to: '/',        label: 'Detect',     icon: <Activity size={11} />,    end: true  },
+              { to: '/change',  label: 'Changes',    icon: <GitCompare size={11} />,  end: false },
+              { to: '/segment', label: 'Land Cover', icon: <ScanSearch size={11} />,  end: false },
+            ].map(n => (
+              <NavLink key={n.to} to={n.to} end={n.end}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 h-11 text-xs font-medium border-b-2 transition-colors ${
+                    isActive
+                      ? 'text-accent border-accent'
+                      : 'text-tx2 border-transparent hover:text-tx hover:border-border2'
+                  }`
+                }>
+                {n.icon}{n.label}
+              </NavLink>
+            ))}
           </nav>
 
-          {/* Right badge */}
-          <div className="ml-auto hidden sm:flex items-center gap-1.5 text-[11px] text-slate-600 font-mono">
-            <Layers size={11}/>
-            <span>7 asset classes · YOLOv8 + Spectral</span>
+          {/* System status */}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-[#3fb950] inline-block animate-blink" />
+            <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-tx3">SYSTEM ONLINE</span>
           </div>
         </div>
       </header>
 
-      {/* ── Main ───────────────────────────────────────────────── */}
+      {/* ── Main ──────────────────────────────────────────────────── */}
       <main className={`flex-1 ${wide ? '' : 'flex flex-col items-center'}`}>
         <Routes>
-          <Route path="/"       element={<UploadPage />} />
+          <Route path="/"        element={<UploadPage />} />
           <Route path="/results" element={<ResultsPage />} />
-          <Route path="/change"   element={<ChangePage />} />
-          <Route path="/segment"  element={<SegmentPage />} />
+          <Route path="/change"  element={<ChangePage />} />
+          <Route path="/segment" element={<SegmentPage />} />
         </Routes>
       </main>
     </div>
   )
-}
-
-function navCls(active: boolean, accent: 'blue' | 'orange' | 'emerald') {
-  const colors = {
-    blue:    active ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'       : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
-    orange:  active ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'   : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
-    emerald: active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
-  }
-  return `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${colors[accent]}`
 }

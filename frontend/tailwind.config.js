@@ -3,27 +3,31 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      colors: {
-        canvas:  '#020817',
-        surface: '#0f172a',
-        card:    '#1e293b',
+      fontFamily: {
+        sans: ['Space Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace'],
       },
-      backgroundOpacity: { 8: '0.08' },
+      colors: {
+        bg:      '#07080b',
+        surface: '#0d1117',
+        panel:   '#161b22',
+        border:  '#21262d',
+        border2: '#30363d',
+        tx:      '#c9d1d9',
+        tx2:     '#8b949e',
+        tx3:     '#484f58',
+        accent:  '#388bfd',
+      },
       animation: {
-        'fade-up': 'fadeUp 0.6s ease forwards',
-        'fade-in': 'fadeIn 0.4s ease forwards',
+        'fade-up': 'fadeUp 0.45s ease forwards',
+        'fade-in': 'fadeIn 0.3s ease forwards',
+        'blink':   'blink 1.2s ease-in-out infinite',
       },
       keyframes: {
-        fadeUp: {
-          from: { opacity: '0', transform: 'translateY(16px)' },
-          to:   { opacity: '1', transform: 'translateY(0)' },
-        },
-        fadeIn: {
-          from: { opacity: '0' },
-          to:   { opacity: '1' },
-        },
+        fadeUp:  { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        fadeIn:  { from: { opacity: '0' }, to: { opacity: '1' } },
+        blink:   { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.3' } },
       },
-      lineClamp: { 2: '2' },
     },
   },
   plugins: [],
