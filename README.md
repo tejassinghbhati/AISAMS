@@ -15,7 +15,7 @@
 
 India's 68,000-kilometre rail network encompasses approximately **1.2 million acres** of land parcels distributed across ecologically and geographically diverse zones, from the Western Ghats evergreen corridors to the hyper-arid Thar Desert plains. Manual geodetic survey of this infrastructure incurs cycle times exceeding 18 months and carries substantial epistemic uncertainty in rapidly urbanising encroachment zones, where land-use change can occur within weeks.
 
-DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining instance segmentation (YOLOv8-seg) with semantic land-cover classification (DeepLabV3-MobileNetV3) to produce sub-second, fully geo-referenced asset inventories from raw satellite or UAV imagery. Outputs are serialised as standards-compliant GeoJSON and integrated with the **eGov DIGIT Urban Infrastructure** platform, closing the loop from raw orbital imagery to field-action workflows without manual photointerpretation.
+DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining instance segmentation (YOLOv8-seg) with semantic land-cover classification (DeepLabV3-MobileNetV3) to produce sub-second, fully geo-referenced asset inventories from raw satellite or UAV imagery. Input imagery may be uploaded directly or fetched live from **ESRI World Imagery** or **Bhuvan ISRO** (NRSC) by specifying geographic coordinates. Outputs are serialised as **GeoJSON**, **CSV**, or **Shapefile** (.shp/.dbf/.prj, EPSG:4326), and can be pushed to the **eGov DIGIT Urban Asset Registry**, closing the loop from raw orbital imagery to field-action workflows without manual photointerpretation.
 
 ---
 
@@ -40,27 +40,32 @@ DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining i
 
 ```mermaid
 graph TB
-    A["🛰️ Input: Satellite / UAV Image\n(JPEG · PNG · GeoTIFF)"] --> B
+    U1["📤 User Upload\n(JPEG · PNG · GeoTIFF)"] --> B
+    U2["🌐 Live Satellite Fetch\n(lat · lon · zoom)"] --> SAT
+    SAT["satellite.py\n• ESRI World Imagery tiles\n• Bhuvan ISRO WMS\n• 3×3 grid stitch → 900×900 JPEG"] --> B
 
-    B["FastAPI Ingestion Layer\n• EXIF metadata extraction\n• Resolution validation\n• Job ID assignment"]
+    B["FastAPI Ingestion Layer\nmain.py\n• Resolution validation · Job ID assignment\n• GSD metadata attachment"]
 
     B --> C{"GSD\n≤ 0.5 m/px?"}
     C -->|High-res| D["YOLOv8-seg\nInstance Segmentation\n(buildings · vehicles · drains)"]
     C -->|Coarse| E["Spectral-only\nHSV Pipeline"]
 
-    D --> F["HSV Spectral Decomposition\n(OpenCV · vegetation · water · roads)"]
+    D --> F["HSV Spectral Decomposition\ndetector.py\n(vegetation · water · roads · drains · buildings)"]
     E --> F
 
-    F --> G["Hybrid Fusion Engine\n• Deduplication via IoU suppression\n• Class-priority weighting\n• Confidence calibration"]
+    F --> G["Hybrid Fusion Engine\n• IoU deduplication\n• Class-priority weighting\n• Confidence calibration"]
 
-    G --> H["DeepLabV3-MobileNetV3\nSemantic Segmentation\n(7-class land cover)"]
+    G --> H["DeepLabV3-MobileNetV3\nSemantic Segmentation\n(7-class land cover · 59.7% mIoU)"]
 
-    H --> I["Geo-referencing Module\n• Pixel → WGS-84 lat/lon\n• Area (m²) via GSD\n• Bounding polygon"]
+    H --> I["Geo-referencing Module\n• Pixel → WGS-84 lat/lon\n• Area (m²) via GSD · Bounding polygon"]
 
-    I --> J["GeoJSON Assembly\n(RFC 7946 compliant)"]
+    I --> J["Export Layer\ngeo.py"]
 
-    J --> K["eGov DIGIT\nUrban Infrastructure Export"]
-    J --> L["Change Detection\nEngine"]
+    J --> K["GeoJSON\n(RFC 7946)"]
+    J --> SHP["Shapefile .zip\n(.shp · .dbf · .prj)"]
+    J --> CSV2["CSV"]
+    J --> DIG["DIGIT Urban Asset Registry\n(mock push · tenantId · assetCategory)"]
+    J --> L["Change Detection Engine\nchange.py"]
     L --> M["Temporal Difference Map\n(encroachment · vegetation loss\n· new construction · flooding)"]
 ```
 
@@ -333,46 +338,115 @@ Evaluated at IoU ≥ 0.5 following SpaceNet Challenge protocol:
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/detect` | Upload image, returns detection result |
-| `POST` | `/api/change` | Upload before+after, returns change map |
-| `GET` | `/api/segment` | Land cover segmentation |
-| `GET` | `/api/export/{id}/geojson` | Download GeoJSON for job |
-| `GET` | `/api/export/{id}/csv` | Download CSV for job |
-| `GET` | `/api/samples` | List available sample images |
-| `GET` | `/api/health` | Service health check |
+| `POST` | `/api/detect` | Upload image, run asset detection |
+| `POST` | `/api/change` | Upload before + after images, run change detection |
+| `POST` | `/api/segment` | Upload image, run land cover segmentation |
+| `POST` | `/api/satellite/fetch` | Fetch live satellite tile by coordinates and detect |
+| `POST` | `/api/digit/push/{id}` | Push job detections to mock DIGIT Urban Asset Registry |
+| `GET` | `/api/export/{id}/geojson` | Download detections as RFC 7946 GeoJSON |
+| `GET` | `/api/export/{id}/csv` | Download detections as CSV |
+| `GET` | `/api/export/{id}/shapefile` | Download detections as zipped Shapefile (WGS-84) |
+| `POST` | `/api/samples/{filename}/detect` | Run detection on a bundled demo sample |
+| `GET` | `/api/samples` | List available demo samples with availability flags |
+| `GET` | `/api/seg/status` | Segmentation model availability and class list |
+| `GET` | `/api/health` | Service liveness check |
 
-### Detection Request
+### Asset Detection
 
 ```bash
 curl -X POST http://localhost:8000/api/detect \
-  -F "image=@satellite_tile.jpg" \
-  -F "gsd=0.5" \
+  -F "file=@satellite_tile.jpg" \
+  -F "gsd_m=0.5" \
   -F "lat=28.6139" \
   -F "lon=77.2090"
+```
+
+### Live Satellite Fetch and Detect
+
+Fetches a stitched satellite tile from ESRI World Imagery or Bhuvan ISRO, runs asset detection, and returns a standard detection result with an additional `source_url` pointing to the raw satellite image.
+
+```bash
+curl -X POST http://localhost:8000/api/satellite/fetch \
+  -F "lat=28.6392" \
+  -F "lon=77.2150" \
+  -F "zoom=18" \
+  -F "source=esri"   # or "bhuvan" for NRSC/ISRO tiles
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `lat` | float | required | Centre latitude (WGS-84) |
+| `lon` | float | required | Centre longitude (WGS-84) |
+| `zoom` | int | 18 | Tile zoom level (16-19); determines GSD |
+| `source` | string | `esri` | `esri` (global) or `bhuvan` (India, NRSC) |
+
+| Zoom | Approx. GSD | Coverage (900 px output) |
+|---|---|---|
+| 16 | 1.20 m/px | ~1.1 km |
+| 17 | 0.60 m/px | ~540 m |
+| 18 | 0.30 m/px | ~270 m |
+| 19 | 0.15 m/px | ~135 m |
+
+### DIGIT Urban Asset Registry Push
+
+```bash
+curl -X POST http://localhost:8000/api/digit/push/f3a9c2
+```
+
+```jsonc
+{
+  "responseInfo": { "status": "SUCCESSFUL", "apiId": "asset-registry", "ver": "v1" },
+  "registryId": "DRISHYA-F3A9C2",
+  "pushed": 47,
+  "endpoint": "https://digit.org/api/asset-registry/v1/assets (mock)",
+  "assets": [
+    {
+      "tenantId": "in.railways",
+      "assetId": "a1b2c3d4",
+      "assetCategory": "BUILDING",
+      "assetStatus": "ACTIVE",
+      "source": "DRISHYA_AI",
+      "confidence": 0.91,
+      "areaSqm": 312.4,
+      "geoLocation": { "latitude": 28.6141, "longitude": 77.2093 }
+    }
+  ]
+}
+```
+
+### Shapefile Export
+
+```bash
+curl http://localhost:8000/api/export/f3a9c2/shapefile --output assets.zip
+# assets.zip contains: assets_f3a9c2.shp · .shx · .dbf · .prj (EPSG:4326)
 ```
 
 ### Detection Response Schema
 
 ```jsonc
 {
-  "job_id": "f3a9c2...",
+  "job_id": "f3a9c2",
+  "image_width": 900, "image_height": 900, "gsd_m": 0.3,
+  "origin": { "lat": 28.6392, "lon": 77.2150 },
+  "source_url": "/results/f3a9c2/source.jpg",   // satellite fetch only
+  "annotated_url": "/results/f3a9c2/annotated.jpg",
   "detections": [
     {
-      "id": 1,
-      "class": "building",
+      "id": "a1b2c3d4",
+      "category": "building",
+      "color": "#dc3545",
       "confidence": 0.91,
-      "bbox": [x1, y1, x2, y2],
-      "area_m2": 312.4,
-      "lat": 28.6141,
-      "lon": 77.2093,
-      "mask": "base64-encoded PNG..."
+      "bbox": { "x": 120, "y": 84, "w": 64, "h": 48 },
+      "area_sqm": 312.4,
+      "centroid": { "lat": 28.6141, "lon": 77.2093 },
+      "geometry": { "type": "Polygon", "coordinates": [[...]] }
     }
   ],
   "summary": {
-    "total_detections": 47,
-    "by_class": { "building": 23, "tree": 12, "water": 4 },
-    "total_area_m2": 14820.3,
-    "inference_ms": 487
+    "total": 47,
+    "by_category": {
+      "building": { "count": 23, "total_area_sqm": 9840.2, "avg_confidence": 0.88 }
+    }
   }
 }
 ```
@@ -388,7 +462,8 @@ backend/
 ├── main.py                  # FastAPI app, all API routes, SPA serving
 ├── detector.py              # SpatialAssetDetector (YOLOv8 + HSV spectral)
 ├── change.py                # ChangeDetector (temporal differencing)
-├── geo.py                   # GeoJSON and CSV export helpers
+├── geo.py                   # GeoJSON, CSV, and Shapefile export helpers
+├── satellite.py             # Live satellite tile fetch (ESRI + Bhuvan ISRO)
 ├── download_samples.py      # ESRI tile downloader (dev utility)
 ├── train_segmentation.py    # DeepLabV3 training script
 └── segmentation/
@@ -414,9 +489,12 @@ Jobs are held in an in-process dict (`_jobs`) keyed by `job_id`. Uploaded files 
 | `POST` | `/api/detect` | Upload image, run `SpatialAssetDetector.detect()` |
 | `POST` | `/api/change` | Upload before + after, run `ChangeDetector.detect_changes()` |
 | `POST` | `/api/segment` | Upload image, run `segmentation.inference.segment_image()` |
+| `POST` | `/api/satellite/fetch` | Fetch live tile via `satellite.fetch_satellite_image()`, then detect |
+| `POST` | `/api/digit/push/{id}` | Format job detections into DIGIT Urban Asset Registry schema |
 | `POST` | `/api/samples/{filename}/detect` | Run detection on a bundled demo sample |
 | `GET` | `/api/export/{id}/geojson` | Stream GeoJSON via `geo.build_geojson()` |
 | `GET` | `/api/export/{id}/csv` | Stream CSV via `geo.build_csv()` |
+| `GET` | `/api/export/{id}/shapefile` | Build and stream zipped Shapefile (WGS-84, `pyshp`) |
 | `GET` | `/api/samples` | Return `samples/manifest.json` with availability flags |
 | `GET` | `/api/health` | Returns `{status: "ok", yolo_available: bool}` |
 | `GET` | `/api/seg/status` | Returns model availability and class list |
@@ -486,6 +564,40 @@ Two stateless functions operating on a job result dict:
 **`build_geojson(job) -> dict`** — produces an RFC 7946 `FeatureCollection`. Each detection with a bounding polygon geometry (available when lat/lon were supplied) becomes a GeoJSON `Feature` with `{id, category, confidence, area_sqm}` properties. Detections without a polygon fall back to a `Point` geometry at the centroid.
 
 **`build_csv(job) -> str`** — produces a CSV string with columns `id, category, confidence, area_sqm, centroid_lat, centroid_lon`. Missing coordinates are emitted as empty fields.
+
+The shapefile export is handled inline in `main.py` using `pyshp` (pure-Python, no GDAL dependency): each detection with a `Polygon` geometry is written as a shapefile record with fields `ID`, `CATEGORY`, `CONFIDENCE`, `AREA_SQM`, plus a `.prj` file declaring EPSG:4326. All four components are zipped and streamed as a single `.zip` download.
+
+---
+
+### `satellite.py` — live satellite imagery
+
+Fetches and stitches real satellite tiles on demand, without requiring API credentials.
+
+**Two data sources:**
+
+| Source | Provider | Coverage | Auth required |
+|---|---|---|---|
+| `esri` (default) | ESRI World Imagery (Maxar/DigitalGlobe via ArcGIS Online) | Global | None |
+| `bhuvan` | NRSC / ISRO Bhuvan WMS (`bhuvan-vec1.nrsc.gov.in`) | India | None |
+
+**`fetch_satellite_image(lat, lon, zoom, grid, source) -> (PIL.Image, gsd_m)`**:
+
+1. Converts the centre coordinate to a Web Mercator tile index at the requested zoom level using the standard slippy-map formula: $x = \lfloor (lon+180)/360 \cdot 2^z \rfloor$, $y = \lfloor (1 - \ln(\tan\phi + \sec\phi)/\pi)/2 \cdot 2^z \rfloor$.
+2. **ESRI path**: downloads a `grid × grid` block of 256 px tiles from the ArcGIS Online tile service and stitches them onto a single canvas.
+3. **Bhuvan path**: computes the WGS-84 bounding box of the same tile block, issues a single OGC WMS `GetMap` request at full resolution.
+4. Resizes the stitched canvas to 900 × 900 px (LANCZOS).
+5. Returns `(image, gsd_m)` where `gsd_m` is looked up from a zoom-to-GSD table.
+
+On any Bhuvan network failure the function silently falls back to ESRI, so the endpoint never errors due to data source unavailability.
+
+**GSD by zoom level (900 px output, approx. at equator):**
+
+| Zoom | GSD | Ground span |
+|---|---|---|
+| 16 | 1.20 m/px | ~1,080 m |
+| 17 | 0.60 m/px | ~540 m |
+| 18 | 0.30 m/px | ~270 m |
+| 19 | 0.15 m/px | ~135 m |
 
 ---
 
