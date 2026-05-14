@@ -79,7 +79,7 @@ export default function SegmentPage() {
           <div className="font-mono text-[10px] text-[#d29922]">
             Model not yet trained. Run:{' '}
             <code className="bg-panel px-2 py-0.5 text-tx ml-1">
-              python train_segmentation.py --data "e:/Hackzilla 2026" --epochs 15 --batch 8
+              python train_segmentation.py --data "./data" --epochs 15 --batch 8
             </code>
             <span className="text-tx3 ml-2">(~35 min on RTX 2050)</span>
           </div>
