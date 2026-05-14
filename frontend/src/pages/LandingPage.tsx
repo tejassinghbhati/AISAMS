@@ -108,32 +108,102 @@ function CursorTrail() {
   return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 9998 }}/>
 }
 
-// Three-layer parallax starfield (CSS background-position animation)
-function StarField() {
+function InteractiveStars() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+
+    type Star = {
+      x: number; y: number; ox: number; oy: number
+      vx: number; vy: number
+      size: number; baseOpacity: number; phase: number; speed: number
+    }
+
+    let stars: Star[] = []
+    const mouse = { x: -9999, y: -9999 }
+    const REPEL  = 90
+    const FORCE  = 3.5
+    const SPRING = 0.045
+    const DAMP   = 0.78
+
+    const init = () => {
+      canvas.width  = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+      const count = Math.floor((canvas.width * canvas.height) / 7000)
+      stars = Array.from({ length: count }, () => {
+        const ox = Math.random() * canvas.width
+        const oy = Math.random() * canvas.height
+        return {
+          x: ox, y: oy, ox, oy,
+          vx: 0, vy: 0,
+          size:        Math.random() * 1.4 + 0.4,
+          baseOpacity: Math.random() * 0.5 + 0.2,
+          phase:       Math.random() * Math.PI * 2,
+          speed:       0.008 + Math.random() * 0.016,
+        }
+      })
+    }
+
+    init()
+    const ro = new ResizeObserver(init)
+    ro.observe(canvas)
+
+    const onMove = (e: MouseEvent) => {
+      const r = canvas.getBoundingClientRect()
+      mouse.x = e.clientX - r.left
+      mouse.y = e.clientY - r.top
+    }
+    const onLeave = () => { mouse.x = -9999; mouse.y = -9999 }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseleave', onLeave)
+
+    let raf: number
+    const tick = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      for (const s of stars) {
+        const dx   = s.x - mouse.x
+        const dy   = s.y - mouse.y
+        const dist = Math.hypot(dx, dy)
+        if (dist < REPEL && dist > 0) {
+          const f = ((REPEL - dist) / REPEL) * FORCE
+          s.vx += (dx / dist) * f
+          s.vy += (dy / dist) * f
+        }
+        s.vx += (s.ox - s.x) * SPRING
+        s.vy += (s.oy - s.y) * SPRING
+        s.vx *= DAMP
+        s.vy *= DAMP
+        s.x  += s.vx
+        s.y  += s.vy
+        s.phase += s.speed
+
+        const op = s.baseOpacity * (0.65 + 0.35 * Math.sin(s.phase))
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(210,230,255,${op})`
+        ctx.fill()
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    tick()
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseleave', onLeave)
+    }
+  }, [])
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(210,230,255,0.9) 1px, transparent 1px)',
-        backgroundSize:  '150px 150px',
-        backgroundPosition: '0 0',
-        animation: 'starsDrift1 90s linear infinite',
-        opacity: 0.45,
-      }}/>
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(180,215,255,0.75) 1px, transparent 1px)',
-        backgroundSize:  '250px 250px',
-        backgroundPosition: '80px 60px',
-        animation: 'starsDrift2 55s linear infinite',
-        opacity: 0.35,
-      }}/>
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1.5px, transparent 1.5px)',
-        backgroundSize:  '400px 400px',
-        backgroundPosition: '200px 150px',
-        animation: 'starsDrift3 38s linear infinite',
-        opacity: 0.30,
-      }}/>
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ zIndex: 0 }}
+    />
   )
 }
 
@@ -142,9 +212,6 @@ function GlobalStyles() {
     <style>{`
       @keyframes blinkFast { 0%,100%{opacity:1} 50%{opacity:0} }
       @keyframes floatUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-      @keyframes starsDrift1 { from{background-position:0 0}        to{background-position:0 150px}  }
-      @keyframes starsDrift2 { from{background-position:80px 60px}  to{background-position:80px 310px} }
-      @keyframes starsDrift3 { from{background-position:200px 150px} to{background-position:200px 550px} }
     `}</style>
   )
 }
@@ -160,7 +227,7 @@ export default function LandingPage() {
       {/* HERO */}
       <section className="relative min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-6 py-20 overflow-hidden">
 
-        <StarField/>
+        <InteractiveStars/>
 
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none" style={{
           background: `radial-gradient(ellipse at center top, ${C.cyan}10 0%, transparent 65%)`,
@@ -183,7 +250,7 @@ export default function LandingPage() {
           </p>
 
           <p className="text-sm leading-relaxed max-w-lg mb-10" style={{ color: C.text2, fontFamily: 'Inter, sans-serif' }}>
-            AI-powered spatial asset intelligence — detect buildings, encroachments, water bodies
+            AI-powered spatial asset intelligence. Detect buildings, encroachments, water bodies
             and terrain cover from any satellite or drone image in under a second.
           </p>
 
@@ -257,10 +324,10 @@ export default function LandingPage() {
                 desc: 'YOLOv8-seg + HSV spectral segmentation identifies buildings, roads, water bodies, drains and vehicles from any satellite tile.' },
               { icon: <Layers size={20}/>,    accent: '#c084fc', code: 'SYS-02',
                 title: 'LAND COVER MAPPING',
-                desc: 'DeepLabV3-MobileNetV3 trained on 792 DeepGlobe WorldView tiles — pixel-level classification into 7 land cover classes.' },
+                desc: 'DeepLabV3-MobileNetV3 trained on 792 DeepGlobe WorldView tiles for pixel-level classification into 7 land cover classes.' },
               { icon: <FileDown size={20}/>,  accent: C.green,   code: 'SYS-03',
                 title: 'GIS EXPORT',
-                desc: 'Every detection geo-referenced and exported as GeoJSON — compatible with QGIS, ArcGIS and eGov DIGIT GIS modules.' },
+                desc: 'Every detection geo-referenced and exported as GeoJSON, compatible with QGIS, ArcGIS and eGov DIGIT GIS modules.' },
               { icon: <GitCompare size={20}/>,accent: C.amber,   code: 'SYS-04',
                 title: 'CHANGE DETECTION',
                 desc: 'Temporal differencing automatically flags encroachments, new construction, vegetation loss and water body changes.' },
@@ -298,7 +365,7 @@ export default function LandingPage() {
               </div>
               <div className="space-y-4 text-sm leading-relaxed" style={{ color: C.text2, fontFamily: 'Inter, sans-serif' }}>
                 <p>India's 68,000 km railway network manages over <strong style={{ color: C.text }}>1.2 million acres</strong> of land. Manual ground surveys are slow, expensive and leave months-long blind spots during which encroachments and structural degradation go undetected.</p>
-                <p>Drishya processes satellite or drone imagery through a hybrid AI pipeline — YOLOv8-seg for object detection, DeepGlobe-trained segmentation for terrain classification — producing a fully geo-referenced asset inventory in under a second.</p>
+                <p>Drishya processes satellite or drone imagery through a hybrid AI pipeline (YOLOv8-seg for object detection, DeepGlobe-trained segmentation for terrain classification) to produce a fully geo-referenced asset inventory in under a second.</p>
                 <p>Results export as GeoJSON for eGov DIGIT Urban Infrastructure modules, closing the loop from raw orbital imagery to actionable ground intelligence.</p>
               </div>
               <div className="mt-7 flex flex-wrap gap-2">
@@ -346,11 +413,10 @@ export default function LandingPage() {
               <span className="font-mono text-[9px] uppercase tracking-[0.3em]" style={{ color: C.text3 }}>Team</span>
               <span className="font-mono text-[9px] ml-auto" style={{ color: C.text3 }}>eGov DIGIT · 2026</span>
             </div>
-            <div className="grid sm:grid-cols-3 divide-x" style={{ borderColor: C.b1 }}>
+            <div className="grid sm:grid-cols-2 divide-x" style={{ borderColor: C.b1 }}>
               {[
-                { name: 'Tejas Singh Bhati', role: 'AI · Full-Stack · ML',        initials: 'TB', color: C.cyan    },
-                { name: 'Saksham Mawari',    role: 'ML · Computer Vision · AI',   initials: 'SM', color: C.green   },
-                { name: 'Team Member',       role: 'Backend · Infra · API',        initials: 'TM', color: '#c084fc' },
+                { name: 'Tejas Singh Bhati', role: 'AI · Full-Stack · ML',      initials: 'TB', color: C.cyan  },
+                { name: 'Saksham Mawari',    role: 'ML · Computer Vision · AI', initials: 'SM', color: C.green },
               ].map((t, i) => (
                 <div key={i} className="px-6 py-5 flex items-center gap-4">
                   <div className="w-10 h-10 flex items-center justify-center shrink-0 font-display font-bold text-sm"
@@ -382,18 +448,29 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-5 gap-5">
             <div className="lg:col-span-2 flex flex-col gap-4">
               {[
-                { icon: <Mail size={14}/>,  label: 'Email',      value: 'tejassinghbhati077@gmail.com', color: C.cyan    },
-                { icon: <Link size={14}/>,  label: 'Repository', value: 'tejassinghbhati/AISAMS',       color: '#c084fc' },
-                { icon: <MapPin size={14}/>,label: 'Location',   value: 'India · eGov DIGIT Platform',  color: C.green   },
+                { icon: <Mail size={14}/>,  label: 'Email',      value: 'tejassinghbhati077@gmail.com', color: C.cyan,    href: 'mailto:tejassinghbhati077@gmail.com' },
+                { icon: <Link size={14}/>,  label: 'Repository', value: 'tejassinghbhati/AISAMS',       color: '#c084fc', href: 'https://github.com/tejassinghbhati/AISAMS' },
+                { icon: <MapPin size={14}/>,label: 'Location',   value: 'India · eGov DIGIT Platform',  color: C.green,   href: null },
               ].map(c => (
                 <HudCard key={c.label} accent={c.color} className="px-5 py-4 flex items-center gap-4">
-                  <div className="p-2.5 shrink-0" style={{ border: `1px solid ${c.color}30`, background: `${c.color}0d`, color: c.color }}>
-                    {c.icon}
-                  </div>
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-[0.25em] mb-1" style={{ color: C.text3 }}>{c.label}</div>
-                    <div className="font-mono text-[10px]" style={{ color: C.text }}>{c.value}</div>
-                  </div>
+                  {c.href ? (
+                    <a href={c.href} target={c.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer"
+                      className="flex items-center gap-4 w-full">
+                      <div className="p-2.5 shrink-0" style={{ border: `1px solid ${c.color}30`, background: `${c.color}0d`, color: c.color }}>{c.icon}</div>
+                      <div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.25em] mb-1" style={{ color: C.text3 }}>{c.label}</div>
+                        <div className="font-mono text-[10px]" style={{ color: C.text }}>{c.value}</div>
+                      </div>
+                    </a>
+                  ) : (
+                    <>
+                      <div className="p-2.5 shrink-0" style={{ border: `1px solid ${c.color}30`, background: `${c.color}0d`, color: c.color }}>{c.icon}</div>
+                      <div>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.25em] mb-1" style={{ color: C.text3 }}>{c.label}</div>
+                        <div className="font-mono text-[10px]" style={{ color: C.text }}>{c.value}</div>
+                      </div>
+                    </>
+                  )}
                 </HudCard>
               ))}
             </div>
