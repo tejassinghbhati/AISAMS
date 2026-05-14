@@ -63,9 +63,22 @@ def train(data_root: str, epochs: int, batch: int, lr: float):
     if device.type == "cuda":
         print(f"  GPU    : {torch.cuda.get_device_name(0)}")
 
-    # Datasets
-    train_ds = DeepGlobeDataset(data_root, split="train")
-    val_ds   = DeepGlobeDataset(data_root, split="valid")
+    # Datasets — try dedicated valid/ split, fall back to 10% of train
+    full_ds = DeepGlobeDataset(data_root, split="train")
+    try:
+        val_ds_check = DeepGlobeDataset(data_root, split="valid")
+        if len(val_ds_check) > 0:
+            train_ds = full_ds
+            val_ds   = val_ds_check
+        else:
+            raise FileNotFoundError
+    except FileNotFoundError:
+        from torch.utils.data import random_split
+        n_val    = max(1, int(len(full_ds) * 0.1))
+        n_train  = len(full_ds) - n_val
+        train_ds, val_ds = random_split(full_ds, [n_train, n_val],
+                                         generator=torch.Generator().manual_seed(42))
+
     print(f"  Train  : {len(train_ds)} samples")
     print(f"  Valid  : {len(val_ds)} samples")
 
