@@ -14,14 +14,25 @@ from detector import SpatialAssetDetector
 from change import ChangeDetector
 from geo import build_geojson, build_csv
 
-# Segmentation (loaded lazily after training)
-_seg_available = False
-try:
-    from segmentation.inference import segment_image as _seg_infer
-    from segmentation.dataset import CLASS_NAMES, CLASS_HEX, NUM_CLASSES
-    _seg_available = (Path("segmentation/deepglobe_seg.pt")).exists()
-except ImportError:
-    pass
+# Segmentation — imports deferred to first request to avoid loading PyTorch at startup
+_seg_available: Optional[bool] = None  # None = not yet checked
+_seg_infer = None
+_seg_classes: list = []
+_seg_hex: list = []
+
+def _ensure_seg():
+    global _seg_available, _seg_infer, _seg_classes, _seg_hex
+    if _seg_available is not None:
+        return
+    try:
+        from segmentation.inference import segment_image as _fn
+        from segmentation.dataset import CLASS_NAMES, CLASS_HEX
+        _seg_infer = _fn
+        _seg_classes = CLASS_NAMES
+        _seg_hex = CLASS_HEX
+        _seg_available = Path("segmentation/deepglobe_seg.pt").exists()
+    except ImportError:
+        _seg_available = False
 
 app = FastAPI(title="AI Spatial Asset Management System", version="1.0.0")
 
@@ -222,11 +233,12 @@ def export_csv(job_id: str):
 
 @app.get("/api/seg/status")
 def seg_status():
+    _ensure_seg()
     return {
         "available": _seg_available,
         "model_path": "segmentation/deepglobe_seg.pt",
-        "classes": CLASS_NAMES if _seg_available else [],
-        "class_colors": CLASS_HEX if _seg_available else [],
+        "classes": _seg_classes,
+        "class_colors": _seg_hex,
     }
 
 
@@ -234,6 +246,7 @@ def seg_status():
 async def segment_assets(
     file: UploadFile = File(...),
 ):
+    _ensure_seg()
     if not _seg_available:
         raise HTTPException(503, "Segmentation model not trained yet. Run: python train_segmentation.py --data <path>")
 
@@ -245,7 +258,6 @@ async def segment_assets(
     try:
         result = _seg_infer(str(img_path), str(out_dir))
         result["job_id"] = job_id
-        # Rewrite paths to served URLs
         result["seg_url"]     = f"/results/{job_id}/seg_mask.png"
         result["overlay_url"] = f"/results/{job_id}/seg_overlay.jpg"
         _jobs[job_id] = result
@@ -256,6 +268,7 @@ async def segment_assets(
 
 @app.post("/api/samples/{filename}/segment")
 def segment_sample(filename: str):
+    _ensure_seg()
     if not _seg_available:
         raise HTTPException(503, "Segmentation model not trained yet.")
 
