@@ -41,6 +41,8 @@ backend/spacenet_data/
 *.onnx
 *.weights
 *.h5
+# Keep the trained segmentation model so Render can build with it
+!backend/segmentation/deepglobe_seg.pt
 
 # ── IDE / OS ──────────────────────────────────────────
 .vscode/
