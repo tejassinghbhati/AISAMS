@@ -67,7 +67,7 @@ export default function SegmentPage() {
         </div>
         <h1 className="text-3xl font-bold text-tx mb-2">Land Cover Segmentation</h1>
         <p className="text-tx2 text-sm max-w-xl leading-relaxed">
-          Pixel-level classification into 7 land cover classes —
+          Pixel-level classification into 7 land cover classes,
           trained on DeepGlobe benchmark dataset (792 labelled WorldView tiles).
         </p>
       </div>
