@@ -58,7 +58,6 @@ function CountUp({ target, suffix = '' }: { target: number; suffix?: string }) {
   return <span ref={ref}>{val.toLocaleString()}{suffix}</span>
 }
 
-// Falling-star cursor trail rendered on a fixed canvas
 function CursorTrail() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -67,112 +66,41 @@ function CursorTrail() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
 
-    const resize = () => {
-      canvas.width  = window.innerWidth
-      canvas.height = window.innerHeight
-    }
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
 
-    type Pt = { x: number; y: number }
-    type Particle = {
-      x: number; y: number; vx: number; vy: number
-      alpha: number; size: number; color: string; trail: Pt[]
-    }
-
-    const particles: Particle[] = []
-    const mouse = { x: -999, y: -999, active: false }
-    const COLORS = ['#00c3ff', '#00c3ff', '#00c3ff', '#ffffff', '#a8d8ff', '#00e676']
+    const trail: Array<{ x: number; y: number }> = []
+    const MAX = 28
 
     const onMove = (e: MouseEvent) => {
-      mouse.x = e.clientX
-      mouse.y = e.clientY
-      mouse.active = true
-      for (let i = 0; i < 5; i++) {
-        particles.push({
-          x:     mouse.x + (Math.random() - 0.5) * 8,
-          y:     mouse.y + (Math.random() - 0.5) * 8,
-          vx:    (Math.random() - 0.5) * 2.5,
-          vy:    Math.random() * 2 + 0.4,
-          alpha: 0.85 + Math.random() * 0.15,
-          size:  Math.random() * 2.2 + 0.8,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
-          trail: [],
-        })
-      }
+      trail.push({ x: e.clientX, y: e.clientY })
+      if (trail.length > MAX) trail.shift()
     }
-    const onLeave = () => { mouse.active = false }
-
     window.addEventListener('mousemove', onMove)
-    document.documentElement.addEventListener('mouseleave', onLeave)
 
     let raf: number
-    const animate = () => {
+    const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i]
-        p.trail.push({ x: p.x, y: p.y })
-        if (p.trail.length > 14) p.trail.shift()
-
-        p.x  += p.vx
-        p.y  += p.vy
-        p.vy += 0.07
-        p.vx *= 0.98
-        p.alpha *= 0.90
-        p.size  *= 0.96
-
-        if (p.alpha < 0.02) { particles.splice(i, 1); continue }
-
-        // Tail
-        for (let j = 1; j < p.trail.length; j++) {
-          const ratio = j / p.trail.length
-          const ta  = ratio * p.alpha * 0.65
-          const hex = Math.round(ta * 255).toString(16).padStart(2, '0')
+      if (trail.length > 1) {
+        for (let i = 1; i < trail.length; i++) {
+          const alpha = i / trail.length
           ctx.beginPath()
-          ctx.moveTo(p.trail[j - 1].x, p.trail[j - 1].y)
-          ctx.lineTo(p.trail[j].x,     p.trail[j].y)
-          ctx.strokeStyle = p.color + hex
-          ctx.lineWidth   = ratio * p.size * 0.9
-          ctx.lineCap     = 'round'
+          ctx.moveTo(trail[i - 1].x, trail[i - 1].y)
+          ctx.lineTo(trail[i].x, trail[i].y)
+          ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.55})`
+          ctx.lineWidth = alpha * 1.5
+          ctx.lineCap = 'round'
           ctx.stroke()
         }
-
-        // Head dot
-        const hex = Math.round(p.alpha * 255).toString(16).padStart(2, '0')
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, Math.max(0.1, p.size), 0, Math.PI * 2)
-        ctx.fillStyle = p.color + hex
-        ctx.fill()
       }
-
-      // Crosshair cursor
-      if (mouse.active) {
-        const { x, y } = mouse
-        const g = 4, r = 9
-        ctx.strokeStyle = '#00c3ffcc'
-        ctx.lineWidth   = 1
-        ctx.beginPath()
-        ctx.moveTo(x - r, y); ctx.lineTo(x - g, y)
-        ctx.moveTo(x + g, y); ctx.lineTo(x + r, y)
-        ctx.moveTo(x, y - r); ctx.lineTo(x, y - g)
-        ctx.moveTo(x, y + g); ctx.lineTo(x, y + r)
-        ctx.stroke()
-        ctx.beginPath()
-        ctx.arc(x, y, 15, 0, Math.PI * 2)
-        ctx.strokeStyle = '#00c3ff2a'
-        ctx.lineWidth   = 0.5
-        ctx.stroke()
-      }
-
-      raf = requestAnimationFrame(animate)
+      raf = requestAnimationFrame(draw)
     }
-    animate()
+    draw()
 
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('mousemove', onMove)
-      document.documentElement.removeEventListener('mouseleave', onLeave)
       window.removeEventListener('resize', resize)
     }
   }, [])
@@ -212,7 +140,6 @@ function StarField() {
 function GlobalStyles() {
   return (
     <style>{`
-      .drishya-landing, .drishya-landing * { cursor: none !important; }
       @keyframes blinkFast { 0%,100%{opacity:1} 50%{opacity:0} }
       @keyframes floatUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
       @keyframes starsDrift1 { from{background-position:0 0}        to{background-position:0 150px}  }
