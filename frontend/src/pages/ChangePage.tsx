@@ -4,10 +4,10 @@ import { detectChanges } from '../api/client'
 import type { ChangeResult } from '../types'
 
 const CHANGE_COLORS: Record<string, string> = {
-  new_construction: '#dc3545',
-  vegetation_loss:  '#f97316',
-  new_water:        '#1f6feb',
-  encroachment:     '#ef4444',
+  new_construction: '#f85149',
+  vegetation_loss:  '#d29922',
+  new_water:        '#388bfd',
+  encroachment:     '#a371f7',
 }
 const CHANGE_LABELS: Record<string, string> = {
   new_construction: 'New Construction',
@@ -16,10 +16,10 @@ const CHANGE_LABELS: Record<string, string> = {
   encroachment:     'Encroachment',
 }
 
-function DropZone({ label, badge, file, onFile }: { label: string; badge: string; file: File | null; onFile: (f: File) => void }) {
-  const ref  = useRef<HTMLInputElement>(null)
+function DropZone({ badge, label, file, onFile }: { badge: string; label: string; file: File | null; onFile: (f: File) => void }) {
+  const ref = useRef<HTMLInputElement>(null)
   const [drag, setDrag] = useState(false)
-  const url  = file ? URL.createObjectURL(file) : null
+  const url = file ? URL.createObjectURL(file) : null
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDrag(false)
@@ -32,33 +32,38 @@ function DropZone({ label, badge, file, onFile }: { label: string; badge: string
       onDragLeave={() => setDrag(false)}
       onDrop={onDrop}
       onClick={() => ref.current?.click()}
-      className={`relative rounded-2xl border-2 border-dashed cursor-pointer transition-all overflow-hidden min-h-[200px] flex items-center justify-center group ${
-        drag ? 'border-orange-400 bg-orange-500/8'
-        : file ? 'border-emerald-500/40 bg-emerald-500/5'
-        : 'border-slate-700 hover:border-orange-500/50 hover:bg-slate-800/30'
-      }`}
+      className="relative border-2 border-dashed cursor-pointer transition-all overflow-hidden min-h-[200px] flex items-center justify-center"
+      style={{
+        borderColor: drag ? '#d29922' : file ? '#3fb950' : '#30363d',
+        background: drag ? 'rgba(210,153,34,0.04)' : file ? 'rgba(63,185,80,0.04)' : '#0d1117',
+      }}
     >
       <input ref={ref} type="file" accept=".jpg,.jpeg,.png,.tif,.tiff" className="hidden"
         onChange={e => e.target.files?.[0] && onFile(e.target.files[0])}/>
+
       {/* Badge */}
-      <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-        {badge}
+      <div className="absolute top-2 left-2">
+        <span className="font-mono text-[8px] uppercase tracking-[0.2em] bg-panel border border-border px-2 py-0.5"
+          style={{ color: badge === 'BEFORE' ? '#8b949e' : '#388bfd' }}>
+          {badge}
+        </span>
       </div>
+
       {url ? (
         <>
           <img src={url} alt={label} className="w-full h-48 object-cover"/>
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/90 to-transparent px-3 py-2">
-            <span className="text-xs text-white truncate block">{file?.name}</span>
+          <div className="absolute inset-x-0 bottom-0 border-t border-border bg-panel/90 px-3 py-1.5">
+            <span className="font-mono text-[10px] text-tx2 truncate block">{file?.name}</span>
           </div>
         </>
       ) : (
         <div className="flex flex-col items-center gap-2.5 text-center p-8 mt-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
-            <UploadCloud size={22} className="text-orange-400"/>
+          <div className="border border-border2 p-3">
+            <UploadCloud size={20} style={{ color: badge === 'BEFORE' ? '#8b949e' : '#388bfd' }}/>
           </div>
           <div>
-            <p className="text-sm font-medium text-white">{label}</p>
-            <p className="text-xs text-slate-500 mt-0.5">Drop or click to browse</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-tx">{label}</p>
+            <p className="font-mono text-[9px] text-tx3 mt-1 uppercase tracking-widest">Drop or click to browse</p>
           </div>
         </div>
       )}
@@ -88,14 +93,17 @@ export default function ChangePage() {
   return (
     <div className="w-full max-w-screen-lg mx-auto px-5 py-12">
 
-      {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/8 text-xs text-orange-400 font-medium mb-5">
-          <GitCompare size={12}/> Temporal Analysis
+      {/* ── page header ── */}
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-4">
+          <GitCompare size={12} style={{ color: '#d29922' }}/>
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-tx3">Temporal Analysis</span>
+          <div className="flex-1 h-px bg-border mx-2"/>
+          <span className="font-mono text-[9px] text-tx3">MOD-04</span>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-3">Change Detection</h1>
-        <p className="text-slate-400 text-sm max-w-lg mx-auto leading-relaxed">
-          Upload two images of the same area taken at different times.
+        <h1 className="text-3xl font-bold text-tx mb-2">Change Detection</h1>
+        <p className="text-tx2 text-sm max-w-lg leading-relaxed">
+          Upload two images of the same area at different times.
           The system detects encroachments, new construction, vegetation loss, and water body changes.
         </p>
       </div>
@@ -103,94 +111,97 @@ export default function ChangePage() {
       {!result ? (
         <>
           {/* Drop zones */}
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <DropZone label="Earlier image" badge="Before" file={before} onFile={setBefore}/>
-            <DropZone label="Recent image"  badge="After"  file={after}  onFile={setAfter}/>
+          <div className="grid grid-cols-2 gap-px bg-border mb-px">
+            <DropZone label="Earlier image" badge="BEFORE" file={before} onFile={setBefore}/>
+            <DropZone label="Recent image"  badge="AFTER"  file={after}  onFile={setAfter}/>
           </div>
 
-          {/* GSD */}
-          <div className="flex items-center gap-3 mb-5">
-            <label className="flex items-center gap-2 text-xs text-slate-500">
-              Ground Sampling Distance (m/px):
-              <input type="number" value={gsd} onChange={e => setGsd(parseFloat(e.target.value))}
-                step={0.1} min={0.01}
-                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white w-24 focus:outline-none focus:border-orange-500/60 transition-colors"/>
-            </label>
+          {/* GSD row */}
+          <div className="flex items-center gap-3 bg-panel border border-border px-4 py-2.5 mb-px">
+            <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-tx3">GSD (m/px)</span>
+            <input type="number" value={gsd} onChange={e => setGsd(parseFloat(e.target.value))}
+              step={0.1} min={0.01}
+              className="bg-transparent border-b border-border2 font-mono text-sm text-tx w-20 focus:outline-none focus:border-accent transition-colors pb-0.5"
+              style={{ appearance: 'textfield' }}/>
           </div>
 
           {error && (
-            <p className="mb-4 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-              <AlertTriangle size={13}/>{error}
-            </p>
+            <div className="flex items-center gap-2 border border-[#f85149]/40 bg-[#f85149]/08 px-4 py-2.5 mb-px">
+              <AlertTriangle size={12} style={{ color: '#f85149' }}/>
+              <span className="font-mono text-[10px] text-[#f85149]">{error}</span>
+            </div>
           )}
 
           <button onClick={run} disabled={!before || !after || loading}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-900/20">
+            className="w-full py-3.5 font-mono text-[11px] uppercase tracking-[0.2em] font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ background: '#d29922', color: '#07080b' }}>
             {loading
-              ? <><Loader2 size={15} className="animate-spin"/>Analysing temporal changes…</>
-              : <>Detect Changes <ArrowRight size={14}/></>}
+              ? <><Loader2 size={14} className="animate-spin"/>Analysing temporal changes…</>
+              : <>Detect Changes <ArrowRight size={13}/></>}
           </button>
         </>
       ) : (
-        <div className="flex gap-5">
-          {/* Image */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-3">
+        <div className="flex gap-px bg-border">
+          {/* Image viewer */}
+          <div className="flex-1 min-w-0 bg-bg flex flex-col">
+            <div className="flex items-center border-b border-border bg-panel">
               {(['overlay', 'comparison'] as const).map(v => (
                 <button key={v} onClick={() => setView(v)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                    view === v
-                      ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-                      : 'text-slate-500 border-transparent hover:border-slate-700 hover:text-slate-200'
-                  }`}>
+                  className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] border-r border-border transition-colors"
+                  style={view === v
+                    ? { color: '#d29922', borderBottom: '2px solid #d29922', background: 'rgba(210,153,34,0.06)' }
+                    : { color: '#484f58', borderBottom: '2px solid transparent' }
+                  }>
                   {v === 'overlay' ? 'Change Overlay' : 'Side-by-side'}
                 </button>
               ))}
               <button onClick={() => setResult(null)}
-                className="ml-auto text-xs text-slate-500 hover:text-white transition-colors">
-                ← New analysis
+                className="ml-auto px-4 font-mono text-[9px] uppercase tracking-widest text-tx3 hover:text-tx transition-colors">
+                ← New Analysis
               </button>
             </div>
-            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden">
+            <div className="bg-surface overflow-hidden">
               <img src={view === 'overlay' ? result.overlay_url : result.comparison_url}
                 alt="change" className="w-full h-auto block"/>
             </div>
           </div>
 
           {/* Summary panel */}
-          <div className="w-72 shrink-0 bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
-            <h2 className="text-sm font-semibold text-white mb-1">Change Summary</h2>
-            <p className="text-xs text-slate-500 mb-5">Temporal analysis results</p>
-
-            <div className="mb-5">
-              <span className="text-4xl font-extrabold text-white">{result.total_changes}</span>
-              <span className="text-sm text-slate-500 ml-2">changes detected</span>
+          <div className="w-64 shrink-0 bg-bg flex flex-col">
+            <div className="px-4 py-3 border-b border-border bg-panel">
+              <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-tx2">Change Summary</span>
             </div>
+            <div className="p-4">
+              <div className="flex items-end gap-2 mb-5">
+                <span className="font-mono text-4xl font-bold text-tx">{result.total_changes}</span>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-tx3 mb-1">changes</span>
+              </div>
 
-            <div className="flex flex-col gap-2">
-              {Object.entries(result.change_summary).map(([type, count]) => (
-                <div key={type} className="flex items-center gap-2.5 bg-slate-800/60 rounded-xl px-3 py-2.5 border border-slate-700/60">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHANGE_COLORS[type] ?? '#888' }}/>
-                  <span className="text-xs text-slate-300 flex-1">{CHANGE_LABELS[type] ?? type}</span>
-                  <span className="text-xs font-semibold text-white">{count}</span>
-                </div>
-              ))}
-              {result.total_changes === 0 && (
-                <p className="text-slate-600 text-xs text-center py-4">
-                  No significant changes detected between the two images.
-                </p>
-              )}
-            </div>
+              <div className="flex flex-col gap-px bg-border">
+                {Object.entries(result.change_summary).map(([type, count]) => (
+                  <div key={type} className="flex items-center gap-2.5 bg-panel px-3 py-2.5">
+                    <span className="w-2 h-2 shrink-0" style={{ background: CHANGE_COLORS[type] ?? '#8b949e' }}/>
+                    <span className="font-mono text-[10px] text-tx2 flex-1">{CHANGE_LABELS[type] ?? type}</span>
+                    <span className="font-mono text-[11px] font-bold text-tx">{count as number}</span>
+                  </div>
+                ))}
+                {result.total_changes === 0 && (
+                  <div className="bg-panel px-3 py-4 text-center">
+                    <span className="font-mono text-[9px] text-tx3 uppercase tracking-widest">No changes detected</span>
+                  </div>
+                )}
+              </div>
 
-            {/* Legend */}
-            <div className="mt-5 pt-4 border-t border-slate-800">
-              <p className="text-[10px] text-slate-600 uppercase tracking-widest mb-2">Legend</p>
-              {Object.entries(CHANGE_LABELS).map(([type, label]) => (
-                <div key={type} className="flex items-center gap-1.5 mb-1">
-                  <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: CHANGE_COLORS[type] }}/>
-                  <span className="text-[10px] text-slate-600">{label}</span>
-                </div>
-              ))}
+              {/* Legend */}
+              <div className="mt-5 pt-4 border-t border-border">
+                <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-tx3 mb-2">Legend</div>
+                {Object.entries(CHANGE_LABELS).map(([type, label]) => (
+                  <div key={type} className="flex items-center gap-1.5 mb-1.5">
+                    <span className="w-2 h-2 shrink-0" style={{ background: CHANGE_COLORS[type] }}/>
+                    <span className="font-mono text-[9px] text-tx3">{label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

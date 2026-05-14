@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Map, ImageIcon, Layers, Sparkles } from 'lucide-react'
+import { ArrowLeft, Map, Layers, Sparkles } from 'lucide-react'
 import type { DetectionResult } from '../types'
 import DetectionCanvas from '../components/DetectionCanvas'
 import SummaryPanel from '../components/SummaryPanel'
@@ -13,11 +13,11 @@ type Tab = 'interactive' | 'annotated' | 'map'
 
 export default function ResultsPage() {
   const nav = useNavigate()
-  const [result, setResult]         = useState<DetectionResult | null>(null)
-  const [previewUrl, setPreviewUrl] = useState('')
+  const [result, setResult]           = useState<DetectionResult | null>(null)
+  const [previewUrl, setPreviewUrl]   = useState('')
   const [activeCategories, setActive] = useState<Set<string>>(new Set())
-  const [minConf, setMinConf]       = useState(0)
-  const [tab, setTab]               = useState<Tab>('interactive')
+  const [minConf, setMinConf]         = useState(0)
+  const [tab, setTab]                 = useState<Tab>('interactive')
 
   useEffect(() => {
     const raw = sessionStorage.getItem('detectionResult')
@@ -39,9 +39,9 @@ export default function ResultsPage() {
 
   const hasGeo = !!result.origin
   const tabs: { id: Tab; label: string; icon: React.ReactNode; hidden?: boolean }[] = [
-    { id: 'interactive', label: 'Interactive Overlay', icon: <Layers size={13}/> },
-    { id: 'annotated',   label: 'AI Annotated',        icon: <Sparkles size={13}/> },
-    { id: 'map',         label: 'GIS Map',              icon: <Map size={13}/>, hidden: !hasGeo },
+    { id: 'interactive', label: 'Interactive',  icon: <Layers size={11}/>  },
+    { id: 'annotated',   label: 'AI Annotated', icon: <Sparkles size={11}/> },
+    { id: 'map',         label: 'GIS Map',       icon: <Map size={11}/>,  hidden: !hasGeo },
   ]
 
   return (
@@ -49,51 +49,55 @@ export default function ResultsPage() {
 
       <EvalBanner />
 
-      {/* ── Top bar ── */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
+      {/* ── top bar ── */}
+      <div className="flex flex-wrap items-center gap-3 mb-5 border-b border-border pb-4">
         <button onClick={() => nav('/')}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-white transition-colors">
-          <ArrowLeft size={13}/> New Detection
+          className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-tx3 hover:text-tx transition-colors">
+          <ArrowLeft size={11}/> New Detection
         </button>
-        <span className="text-slate-800">|</span>
-        <span className="text-xs text-slate-500">
-          Job <span className="text-white font-mono tracking-wide">{result.job_id}</span>
+        <div className="w-px h-3 bg-border2"/>
+        <span className="font-mono text-[10px] text-tx3">
+          JOB <span className="text-tx tracking-wide">{result.job_id}</span>
         </span>
         {result.summary.total > 0 && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-medium">
-            {result.summary.total} assets detected
-          </span>
+          <div className="flex items-center gap-1.5 border border-[#3fb950]/30 px-2.5 py-1 bg-[#3fb950]/08">
+            <span className="w-1.5 h-1.5 bg-[#3fb950] inline-block"/>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-[#3fb950]">
+              {result.summary.total} assets detected
+            </span>
+          </div>
         )}
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-slate-600 font-mono hidden sm:block">
+        <div className="ml-auto flex items-center gap-4">
+          <span className="font-mono text-[9px] text-tx3 hidden sm:block uppercase tracking-wider">
             {result.image_width}×{result.image_height}px · GSD {result.gsd_m}m/px
           </span>
           <ExportBar jobId={result.job_id}/>
         </div>
       </div>
 
-      {/* ── Split layout ── */}
-      <div className="flex gap-4 items-start">
+      {/* ── split layout ── */}
+      <div className="flex gap-px bg-border items-start">
 
         {/* Left: viewer */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 bg-bg flex flex-col gap-px">
+
           {/* Tab bar */}
-          <div className="flex gap-1 mb-3">
+          <div className="flex border-b border-border bg-panel">
             {tabs.filter(t => !t.hidden).map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                  tab === t.id
-                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                    : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60'
-                }`}>
+                className="flex items-center gap-1.5 px-4 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] transition-colors border-r border-border"
+                style={tab === t.id
+                  ? { color: '#388bfd', borderBottom: '2px solid #388bfd', background: 'rgba(56,139,253,0.06)' }
+                  : { color: '#484f58', borderBottom: '2px solid transparent' }
+                }>
                 {t.icon}{t.label}
               </button>
             ))}
           </div>
 
-          {/* Filter bar — only for image views */}
+          {/* Filter bar */}
           {tab !== 'map' && (
-            <div className="mb-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+            <div className="border-b border-border bg-panel px-4 py-3">
               <CategoryFilter
                 categories={result.summary.by_category}
                 active={activeCategories}
@@ -105,7 +109,7 @@ export default function ResultsPage() {
           )}
 
           {/* Image panel */}
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden">
+          <div className="bg-surface overflow-hidden">
             {tab === 'interactive' && (
               <DetectionCanvas
                 imageUrl={previewUrl}
@@ -130,11 +134,14 @@ export default function ResultsPage() {
         </div>
 
         {/* Right: summary */}
-        <div className="w-80 shrink-0 bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <Sparkles size={14} className="text-blue-400"/> Detection Summary
-          </h2>
-          <SummaryPanel total={result.summary.total} byCategory={result.summary.by_category}/>
+        <div className="w-72 shrink-0 bg-bg flex flex-col">
+          <div className="px-4 py-3 border-b border-border bg-panel flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-accent inline-block"/>
+            <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-tx2">Detection Summary</span>
+          </div>
+          <div className="p-4">
+            <SummaryPanel total={result.summary.total} byCategory={result.summary.by_category}/>
+          </div>
         </div>
       </div>
     </div>
