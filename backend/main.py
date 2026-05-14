@@ -276,6 +276,12 @@ def segment_sample(filename: str):
         raise HTTPException(500, str(exc))
 
 
+# Serve the React SPA for all non-API paths (must be mounted last)
+_STATIC = Path("static")
+if _STATIC.exists():
+    app.mount("/", StaticFiles(directory="static", html=True), name="spa")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
