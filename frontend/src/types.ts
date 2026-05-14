@@ -61,6 +61,23 @@ export interface EvalSummary {
   per_tile?: Array<{ tile: string } & EvalMetrics>
 }
 
+export interface ClassStat {
+  class_id: number
+  class_name: string
+  hex: string
+  area_pct: number
+  pixel_count: number
+}
+
+export interface SegResult {
+  job_id: string
+  seg_url: string
+  overlay_url: string
+  class_stats: ClassStat[]
+  class_mask_b64: string
+  seg_size: number
+}
+
 export interface ChangeItem {
   type: string
   bbox: BBox

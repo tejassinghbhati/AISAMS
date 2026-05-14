@@ -1,8 +1,9 @@
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
-import { Satellite, GitCompare, Activity, Layers } from 'lucide-react'
+import { Satellite, GitCompare, Activity, Layers, ScanSearch } from 'lucide-react'
 import UploadPage from './pages/UploadPage'
 import ResultsPage from './pages/ResultsPage'
 import ChangePage from './pages/ChangePage'
+import SegmentPage from './pages/SegmentPage'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -38,6 +39,9 @@ export default function App() {
             <NavLink to="/change" className={({ isActive }) => navCls(isActive, 'orange')}>
               <GitCompare size={13}/> Change Detection
             </NavLink>
+            <NavLink to="/segment" className={({ isActive }) => navCls(isActive, 'emerald')}>
+              <ScanSearch size={13}/> Land Cover
+            </NavLink>
           </nav>
 
           {/* Right badge */}
@@ -53,17 +57,19 @@ export default function App() {
         <Routes>
           <Route path="/"       element={<UploadPage />} />
           <Route path="/results" element={<ResultsPage />} />
-          <Route path="/change"  element={<ChangePage />} />
+          <Route path="/change"   element={<ChangePage />} />
+          <Route path="/segment"  element={<SegmentPage />} />
         </Routes>
       </main>
     </div>
   )
 }
 
-function navCls(active: boolean, accent: 'blue' | 'orange') {
+function navCls(active: boolean, accent: 'blue' | 'orange' | 'emerald') {
   const colors = {
-    blue:   active ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'   : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
-    orange: active ? 'bg-orange-500/10 text-orange-400 border-orange-500/30' : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
+    blue:    active ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'       : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
+    orange:  active ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'   : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
+    emerald: active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'text-slate-500 border-transparent hover:text-slate-200 hover:bg-slate-800/60',
   }
   return `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${colors[accent]}`
 }

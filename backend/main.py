@@ -14,6 +14,15 @@ from detector import SpatialAssetDetector
 from change import ChangeDetector
 from geo import build_geojson, build_csv
 
+# Segmentation (loaded lazily after training)
+_seg_available = False
+try:
+    from segmentation.inference import segment_image as _seg_infer
+    from segmentation.dataset import CLASS_NAMES, CLASS_HEX, NUM_CLASSES
+    _seg_available = (Path("segmentation/deepglobe_seg.pt")).exists()
+except ImportError:
+    pass
+
 app = FastAPI(title="AI Spatial Asset Management System", version="1.0.0")
 
 app.add_middleware(
@@ -204,6 +213,67 @@ def export_csv(job_id: str):
         build_csv(_jobs[job_id]),
         headers={"Content-Disposition": f"attachment; filename=assets_{job_id}.csv"},
     )
+
+
+# ────────────────────────────────────────────────── segmentation (DeepGlobe) ──
+
+@app.get("/api/seg/status")
+def seg_status():
+    return {
+        "available": _seg_available,
+        "model_path": "segmentation/deepglobe_seg.pt",
+        "classes": CLASS_NAMES if _seg_available else [],
+        "class_colors": CLASS_HEX if _seg_available else [],
+    }
+
+
+@app.post("/api/segment")
+async def segment_assets(
+    file: UploadFile = File(...),
+):
+    if not _seg_available:
+        raise HTTPException(503, "Segmentation model not trained yet. Run: python train_segmentation.py --data <path>")
+
+    job_id   = uuid.uuid4().hex[:8]
+    img_path = _save_upload(file, f"seg_{job_id}")
+    out_dir  = RESULTS_DIR / job_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result = _seg_infer(str(img_path), str(out_dir))
+        result["job_id"] = job_id
+        # Rewrite paths to served URLs
+        result["seg_url"]     = f"/results/{job_id}/seg_mask.png"
+        result["overlay_url"] = f"/results/{job_id}/seg_overlay.jpg"
+        _jobs[job_id] = result
+        return result
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+
+@app.post("/api/samples/{filename}/segment")
+def segment_sample(filename: str):
+    if not _seg_available:
+        raise HTTPException(503, "Segmentation model not trained yet.")
+
+    safe = Path(filename).name
+    img_path = SAMPLES_DIR / safe
+    if not img_path.exists():
+        raise HTTPException(404, f"Sample '{safe}' not found.")
+
+    job_id  = uuid.uuid4().hex[:8]
+    out_dir = RESULTS_DIR / job_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result = _seg_infer(str(img_path), str(out_dir))
+        result["job_id"]      = job_id
+        result["seg_url"]     = f"/results/{job_id}/seg_mask.png"
+        result["overlay_url"] = f"/results/{job_id}/seg_overlay.jpg"
+        _jobs[job_id] = result
+        return result
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
 
 
 if __name__ == "__main__":
