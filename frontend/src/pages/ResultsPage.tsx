@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Map, Layers, Sparkles } from 'lucide-react'
-import type { DetectionResult } from '../types'
+import { ArrowLeft, Map, Layers, Sparkles, Send, X, CheckCircle } from 'lucide-react'
+import type { DetectionResult, DigitPushResult } from '../types'
 import DetectionCanvas from '../components/DetectionCanvas'
 import SummaryPanel from '../components/SummaryPanel'
 import CategoryFilter from '../components/CategoryFilter'
 import MapView from '../components/MapView'
 import ExportBar from '../components/ExportBar'
 import EvalBanner from '../components/EvalBanner'
+import { digitPush } from '../api/client'
 
 type Tab = 'interactive' | 'annotated' | 'map'
 
@@ -18,6 +19,9 @@ export default function ResultsPage() {
   const [activeCategories, setActive] = useState<Set<string>>(new Set())
   const [minConf, setMinConf]         = useState(0)
   const [tab, setTab]                 = useState<Tab>('interactive')
+  const [digitResult, setDigitResult] = useState<DigitPushResult | null>(null)
+  const [digitLoading, setDigitLoading] = useState(false)
+  const [digitError, setDigitError]   = useState('')
 
   useEffect(() => {
     const raw = sessionStorage.getItem('detectionResult')
@@ -72,8 +76,40 @@ export default function ResultsPage() {
             {result.image_width}×{result.image_height}px · GSD {result.gsd_m}m/px
           </span>
           <ExportBar jobId={result.job_id}/>
+          <button
+            onClick={async () => {
+              setDigitLoading(true); setDigitError(''); setDigitResult(null)
+              try { setDigitResult(await digitPush(result.job_id)) }
+              catch (e: unknown) { setDigitError(e instanceof Error ? e.message : 'Push failed') }
+              finally { setDigitLoading(false) }
+            }}
+            disabled={digitLoading}
+            className="flex items-center gap-1.5 px-3 py-1 border border-[#a371f7]/40 bg-[#a371f7]/08 font-mono text-[9px] uppercase tracking-widest text-[#a371f7] hover:border-[#a371f7] transition-colors disabled:opacity-40">
+            <Send size={10}/>{digitLoading ? 'Pushing…' : 'Push to DIGIT'}
+          </button>
         </div>
       </div>
+
+      {/* ── DIGIT push result panel ── */}
+      {(digitResult || digitError) && (
+        <div className={`mb-4 border px-4 py-3 flex items-start gap-3 ${digitError ? 'border-[#f85149]/40 bg-[#f85149]/08' : 'border-[#a371f7]/30 bg-[#a371f7]/08'}`}>
+          {digitError
+            ? <span className="font-mono text-[10px] text-[#f85149]">{digitError}</span>
+            : digitResult && (
+              <div className="flex-1 flex items-start gap-3">
+                <CheckCircle size={14} className="shrink-0 mt-0.5" style={{ color: '#a371f7' }}/>
+                <div className="font-mono text-[10px] text-[#a371f7]">
+                  <span className="font-semibold">{digitResult.pushed} assets</span> pushed to mock DIGIT Urban Asset Registry
+                  <span className="text-tx3 ml-3">Registry ID: {digitResult.registryId}</span>
+                </div>
+              </div>
+            )
+          }
+          <button onClick={() => { setDigitResult(null); setDigitError('') }} className="shrink-0 text-tx3 hover:text-tx">
+            <X size={12}/>
+          </button>
+        </div>
+      )}
 
       {/* ── split layout ── */}
       <div className="flex gap-px bg-border items-start">
