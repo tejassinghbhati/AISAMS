@@ -1,4 +1,4 @@
-import type { DetectionResult, ChangeResult } from '../types'
+import type { DetectionResult, ChangeResult, DigitPushResult } from '../types'
 
 const BASE = '/api'
 
@@ -32,5 +32,27 @@ export async function detectChanges(
   return res.json()
 }
 
-export const exportUrl = (jobId: string, fmt: 'geojson' | 'csv') =>
+export const exportUrl = (jobId: string, fmt: 'geojson' | 'csv' | 'shapefile') =>
   `${BASE}/export/${jobId}/${fmt}`
+
+export async function fetchSatellite(
+  lat: number,
+  lon: number,
+  zoom: number,
+  source: string,
+): Promise<DetectionResult> {
+  const fd = new FormData()
+  fd.append('lat', String(lat))
+  fd.append('lon', String(lon))
+  fd.append('zoom', String(zoom))
+  fd.append('source', source)
+  const res = await fetch(`${BASE}/satellite/fetch`, { method: 'POST', body: fd })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function digitPush(jobId: string): Promise<DigitPushResult> {
+  const res = await fetch(`${BASE}/digit/push/${jobId}`, { method: 'POST' })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
