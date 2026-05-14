@@ -15,7 +15,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps first (cached layer)
+# Limit PyTorch thread spawning to reduce memory overhead
+ENV OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    TORCH_NUM_THREADS=1
+
+# Install CPU-only PyTorch before other deps so ultralytics reuses these
+# wheels instead of pulling the CUDA variant (~1.5 GB, ~500 MB resident RAM)
+RUN pip install --no-cache-dir \
+    torch torchvision \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Remaining Python deps
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
