@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UploadCloud, MapPin, Ruler, Loader2, ArrowRight, Zap } from 'lucide-react'
-import { detectAssets } from '../api/client'
+import { UploadCloud, MapPin, Ruler, Loader2, ArrowRight, Zap, Satellite } from 'lucide-react'
+import { detectAssets, fetchSatellite } from '../api/client'
 import type { DetectionResult } from '../types'
 
 interface SampleMeta {
@@ -194,6 +194,111 @@ export default function UploadPage() {
             First run auto-downloads YOLOv8n (~6 MB) · CPU inference
           </span>
         </div>
+      </div>
+
+      {/* ── Live Satellite Fetch ── */}
+      <SatelliteFetch onResult={storeAndNav} />
+    </div>
+  )
+}
+
+const PRESETS = [
+  { label: 'Delhi Railway Yard',   lat: 28.6392, lon: 77.2150 },
+  { label: 'Mumbai Urban',         lat: 19.0534, lon: 72.8514 },
+  { label: 'Bengaluru Tech Park',  lat: 12.9716, lon: 77.5946 },
+  { label: 'Chennai Central',      lat: 13.0827, lon: 80.2707 },
+]
+
+function SatelliteFetch({ onResult }: { onResult: (r: DetectionResult, url: string) => void }) {
+  const [lat, setLat]         = useState('')
+  const [lon, setLon]         = useState('')
+  const [zoom, setZoom]       = useState('18')
+  const [source, setSource]   = useState<'esri' | 'bhuvan'>('esri')
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+
+  const run = async () => {
+    if (!lat || !lon) { setError('Enter latitude and longitude'); return }
+    setLoading(true); setError('')
+    try {
+      const result = await fetchSatellite(parseFloat(lat), parseFloat(lon), parseInt(zoom), source)
+      onResult(result, result.source_url ?? result.annotated_url)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Fetch failed')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="mt-10">
+      <div className="flex items-center gap-3 mb-5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-tx3">Live Satellite Fetch</span>
+        <div className="flex-1 h-px bg-border"/>
+        <span className="font-mono text-[9px] text-tx3">ESRI World Imagery · Bhuvan ISRO</span>
+      </div>
+
+      <div className="flex flex-col gap-px bg-border">
+
+        {/* Preset locations */}
+        <div className="bg-panel px-4 py-3 flex flex-wrap gap-2 items-center">
+          <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-tx3 mr-1">Presets</span>
+          {PRESETS.map(p => (
+            <button key={p.label} onClick={() => { setLat(String(p.lat)); setLon(String(p.lon)) }}
+              className="px-2.5 py-1 border border-border font-mono text-[9px] text-tx2 hover:text-tx hover:border-border2 transition-colors">
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Coordinate + config row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border">
+          {[
+            { label: 'Latitude',  val: lat,  set: setLat,  ph: '28.6392' },
+            { label: 'Longitude', val: lon,  set: setLon,  ph: '77.2150' },
+          ].map(f => (
+            <div key={f.label} className="bg-panel px-3 py-2.5">
+              <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-tx3 mb-1.5">{f.label}</div>
+              <input type="number" value={f.val} onChange={e => f.set(e.target.value)}
+                placeholder={f.ph}
+                className="w-full bg-transparent font-mono text-sm text-tx focus:outline-none placeholder:text-tx3"
+                style={{ appearance: 'textfield' } as React.CSSProperties}/>
+            </div>
+          ))}
+
+          {/* Zoom */}
+          <div className="bg-panel px-3 py-2.5">
+            <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-tx3 mb-1.5">Zoom Level</div>
+            <select value={zoom} onChange={e => setZoom(e.target.value)}
+              className="w-full bg-transparent font-mono text-sm text-tx focus:outline-none">
+              <option value="16">16 — 1.2 m/px</option>
+              <option value="17">17 — 0.6 m/px</option>
+              <option value="18">18 — 0.3 m/px</option>
+              <option value="19">19 — 0.15 m/px</option>
+            </select>
+          </div>
+
+          {/* Source */}
+          <div className="bg-panel px-3 py-2.5">
+            <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-tx3 mb-1.5">Source</div>
+            <select value={source} onChange={e => setSource(e.target.value as 'esri' | 'bhuvan')}
+              className="w-full bg-transparent font-mono text-sm text-tx focus:outline-none">
+              <option value="esri">ESRI World Imagery</option>
+              <option value="bhuvan">Bhuvan ISRO (India)</option>
+            </select>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-panel border-t border-[#f85149]/40 px-4 py-2.5">
+            <span className="font-mono text-[10px] text-[#f85149]">{error}</span>
+          </div>
+        )}
+
+        <button onClick={run} disabled={loading}
+          className="w-full py-3.5 bg-[#1f6feb] font-mono text-[11px] uppercase tracking-[0.2em] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed">
+          {loading
+            ? <><Loader2 size={14} className="animate-spin"/>Fetching Satellite + Detecting…</>
+            : <><Satellite size={13}/>Fetch Live Satellite & Detect</>}
+        </button>
       </div>
     </div>
   )
