@@ -1,4 +1,39 @@
-"""DeepGlobe Land Cover dataset loader."""
+"""
+segmentation/dataset.py — DeepGlobe Land Cover dataset loader.
+
+Dataset structure expected on disk
+-----------------------------------
+<root>/
+  train/
+    <id>_sat.jpg    — WorldView satellite image (2448×2448 px)
+    <id>_mask.png   — RGB segmentation mask (same size)
+  valid/
+    ...
+
+Colour → class mapping  (DeepGlobe challenge convention)
+---------------------------------------------------------
+  (0,   0,   0)   → 0  Background / Unknown
+  (0,   0,   255) → 1  Water
+  (0,   255, 0)   → 2  Forest
+  (0,   255, 255) → 3  Urban / Built-up
+  (255, 0,   255) → 4  Rangeland
+  (255, 255, 0)   → 5  Agriculture
+  (255, 255, 255) → 6  Barren land
+
+Training augmentations (train split only)
+-----------------------------------------
+  - Resize to 1024×1024, then random 512×512 crop
+  - Random horizontal flip (p=0.5)
+  - Random vertical flip (p=0.5)
+  ImageNet normalisation applied to the satellite image tensor.
+
+Key exports
+-----------
+DeepGlobeDataset   — torch Dataset class
+mask_to_tensor()   — RGB mask PIL Image → class-index LongTensor (H, W)
+tensor_to_rgb()    — class-index tensor → RGB numpy array (for visualisation)
+CLASS_NAMES, CLASS_HEX, NUM_CLASSES  — used by inference and the API
+"""
 
 import os
 import numpy as np

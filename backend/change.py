@@ -1,3 +1,28 @@
+"""
+change.py — Temporal change detection between two satellite images.
+
+Algorithm
+---------
+Both images are converted to HSV colour space and three binary masks are
+computed per image: vegetation (hue 35-85), bright surfaces (value > 185,
+low saturation — proxy for buildings/concrete), and water (hue 95-135).
+
+Four change types are derived by comparing before/after masks:
+
+  new_construction  — bright pixels in "after" that were NOT bright in "before"
+  vegetation_loss   — vegetation pixels in "before" that are gone in "after"
+  new_water         — water pixels in "after" that were NOT water in "before"
+  encroachment      — pixels that were vegetation in "before" AND bright in "after"
+                      (vegetation replaced by built surface — strongest encroachment signal)
+
+Each raw difference mask is cleaned with morphological close + open (7×7 kernel)
+to remove noise, then contours below 400 px² are discarded as artefacts.
+
+Outputs saved to out_dir/
+  change_overlay.jpg  — "after" image with coloured bounding boxes
+  comparison.jpg      — side-by-side: before | after | overlay
+"""
+
 import cv2
 import numpy as np
 from pathlib import Path
@@ -5,6 +30,21 @@ from pathlib import Path
 
 class ChangeDetector:
     def detect_changes(self, before_path: str, after_path: str, job_id: str, out_dir: str) -> dict:
+        """
+        Compare two images and return detected changes with bounding boxes.
+
+        Parameters
+        ----------
+        before_path : path to the earlier (reference) image
+        after_path  : path to the later (query) image
+        job_id      : unique identifier used to build result URLs
+        out_dir     : directory where output images are saved
+
+        Returns
+        -------
+        dict with keys: job_id, changes (list), total_changes, change_summary,
+        overlay_url, comparison_url
+        """
         before = cv2.imread(before_path)
         after = cv2.imread(after_path)
         if before is None or after is None:

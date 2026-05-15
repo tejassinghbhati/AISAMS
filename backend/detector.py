@@ -1,3 +1,31 @@
+"""
+detector.py — Hybrid spatial asset detector.
+
+Two-stage pipeline
+------------------
+Stage 1 — HSV Spectral Pipeline  (_color_segment)
+    Converts the image to HSV colour space and applies hand-crafted colour
+    range masks to detect six asset categories without any labelled training data:
+
+      Water       hue 95-135 (blue-cyan range)
+      Vegetation  hue 35-85  → split by contour area:
+                    tree  (< 6 000 px²)  |  park  (≥ 6 000 px²)
+      Road        low saturation + mid-value gray, excluding water/vegetation
+      Building    high brightness + low saturation, aspect ratio < 8
+      Drain       dark elongated contours via morphological horizontal/vertical open
+
+    Each detection is converted via _make() which attaches bounding box, area in
+    square metres (px² × GSD²), and WGS-84 polygon + centroid when origin is given.
+
+Stage 2 — YOLOv8n Vehicle Detection  (_yolo_detect)
+    Loaded lazily on first detect() call via _ensure_yolo().
+    Filters COCO vehicle classes: car (2), motorcycle (3), bus (5), truck (7).
+    Minimum confidence: 0.30.
+
+Annotated output  (_draw)
+    Semi-transparent filled rectangles + label chips saved to out_dir/annotated.jpg.
+"""
+
 import cv2
 import math
 import uuid

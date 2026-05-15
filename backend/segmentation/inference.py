@@ -1,4 +1,36 @@
-"""Segmentation inference: image → class mask + stats."""
+"""
+segmentation/inference.py — Run land cover segmentation on a single image.
+
+Model loading
+-------------
+The DeepLabV3-MobileNetV3 model is loaded lazily on the first call to
+segment_image() via _load(). Subsequent calls reuse the cached _model object.
+Device selection: CUDA if available, otherwise CPU.
+Weights are read from segmentation/deepglobe_seg.pt (relative to backend/).
+
+Inference pipeline
+------------------
+1. Resize input image to 512×512 (INFER_SIZE) with bilinear interpolation.
+2. Normalise with ImageNet mean/std.
+3. Forward pass → argmax over class dimension → class-index tensor (512×512).
+4. Resize prediction back to original image resolution with nearest-neighbour
+   (preserves hard class boundaries).
+
+Outputs saved to out_dir/
+--------------------------
+  seg_mask.png    — RGB colour map of the predicted class mask
+  seg_overlay.jpg — original image blended with the colour mask (alpha=160/255)
+
+Return value of segment_image()
+--------------------------------
+  seg_url         — relative path to seg_mask.png
+  overlay_url     — relative path to seg_overlay.jpg
+  class_stats     — list of {class_id, class_name, hex, area_pct, pixel_count}
+                    sorted by area descending, zero-area classes omitted
+  class_mask_b64  — base64-encoded PNG of the 512×512 class-index mask
+                    (used by the frontend canvas overlay renderer)
+  seg_size        — always 512 (matches class_mask_b64 dimensions)
+"""
 
 import io
 import base64

@@ -1,6 +1,31 @@
 """
-Fetch satellite imagery from ESRI World Imagery (global, no auth)
-or Bhuvan ISRO WMS (India-specific, NRSC/ISRO).
+satellite.py — Live satellite tile fetcher.
+
+Supports two sources
+--------------------
+ESRI World Imagery  (global, no authentication required)
+    Fetches a grid of 256×256 slippy-map tiles from ArcGIS Online using the
+    standard XYZ tile formula, stitches them into a single image, and resizes
+    to 900×900 px for consistency with the detection pipeline.
+
+Bhuvan ISRO  (India-specific, NRSC/ISRO OGC WMS)
+    Issues a single WMS GetMap request with a computed bounding box derived
+    from the tile grid extents. Falls back to ESRI automatically on any
+    network or decoding error.
+
+Tile coordinate maths
+---------------------
+Web Mercator slippy-map formula (zoom level z):
+    x = floor((lon + 180) / 360 × 2^z)
+    y = floor((1 − ln(tan(φ) + sec(φ)) / π) / 2 × 2^z)
+
+GSD lookup  (approximate metres/pixel at equator for a 900×900 output)
+    zoom 16 → 1.20 m/px  |  17 → 0.60  |  18 → 0.30  |  19 → 0.15
+
+Public API
+----------
+fetch_satellite_image(lat, lon, zoom, grid, source) → (PIL.Image, gsd_m)
+    grid=3 fetches a 3×3 tile neighbourhood (768×768 raw, resized to 900×900).
 """
 
 import io

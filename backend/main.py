@@ -1,3 +1,45 @@
+"""
+main.py — FastAPI application entry point for DRISHYA.
+
+Route map
+---------
+GET  /api/health                        — liveness check, reports yolo_available
+GET  /api/samples                       — list demo sample images from manifest.json
+GET  /api/eval                          — return SpaceNet evaluation summary
+POST /api/samples/{filename}/detect     — run detection on a bundled demo image
+POST /api/detect                        — run detection on an uploaded image
+POST /api/change                        — run change detection on before/after pair
+GET  /api/jobs/{job_id}                 — retrieve a cached job result
+GET  /api/export/{job_id}/geojson       — download GeoJSON for a job
+GET  /api/export/{job_id}/csv           — download CSV for a job
+GET  /api/export/{job_id}/shapefile     — download Shapefile zip for a job
+GET  /api/seg/status                    — report whether segmentation model is ready
+POST /api/segment                       — run land cover segmentation on uploaded image
+POST /api/samples/{filename}/segment    — run segmentation on a bundled demo image
+POST /api/satellite/fetch               — fetch live satellite tile and run detection
+POST /api/digit/push/{job_id}           — push job detections to mock DIGIT registry
+
+Job lifecycle
+-------------
+Each POST that runs inference generates a UUID job_id, stores results in
+results/<job_id>/, caches the result dict in the in-memory _jobs store, and
+returns the dict to the client. GET routes read from _jobs (restarting the
+server clears the cache — results on disk persist but are not re-indexed).
+
+Lazy model loading
+------------------
+SpatialAssetDetector._ensure_yolo() defers YOLOv8 weight loading to the first
+/api/detect call. _ensure_seg() defers segmentation PyTorch import to the first
+/api/segment or /api/seg/status call. This keeps startup RAM under 80 MB so
+Render's health check passes immediately.
+
+Static serving
+--------------
+/results and /samples are mounted as StaticFiles directories.
+The compiled React SPA (frontend/dist → static/) is mounted last at / so all
+non-API paths serve index.html (client-side routing).
+"""
+
 import io
 import json
 import shutil
