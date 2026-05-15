@@ -12,12 +12,10 @@
 
 | Name | Roll Number |
 |------|------------|
-| *(Member 1)* | *(Roll No.)* |
-| *(Member 2)* | *(Roll No.)* |
-| *(Member 3)* | *(Roll No.)* |
-| *(Member 4)* | *(Roll No.)* |
+| *Tejas Singh Bhati* | *12413036* |
+| *Saksham Mawari* | *12413011* |
 
-**Institution:** *(Your College / University)*
+**Institution:** *Indian Institute of Information Technology*
 **Track:** Indian Railways × eGov DIGIT — AI Powered Spatial Asset Management System
 
 ---
