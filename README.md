@@ -8,6 +8,9 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat&logo=pytorch)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript)
+![Docker](https://img.shields.io/badge/Docker-Containerised-2496ED?style=flat&logo=docker&logoColor=white)
+![Render](https://img.shields.io/badge/Deployed-Render-46E3B7?style=flat&logo=render&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
 ---
 
@@ -16,6 +19,17 @@
 India's 68,000-kilometre rail network encompasses approximately **1.2 million acres** of land parcels distributed across ecologically and geographically diverse zones, from the Western Ghats evergreen corridors to the hyper-arid Thar Desert plains. Manual geodetic survey of this infrastructure incurs cycle times exceeding 18 months and carries substantial epistemic uncertainty in rapidly urbanising encroachment zones, where land-use change can occur within weeks.
 
 DRISHYA addresses this operational gap with a **hybrid AI pipeline** combining instance segmentation (YOLOv8-seg) with semantic land-cover classification (DeepLabV3-MobileNetV3) to produce sub-second, fully geo-referenced asset inventories from raw satellite or UAV imagery. Input imagery may be uploaded directly or fetched live from **ESRI World Imagery** or **Bhuvan ISRO** (NRSC) by specifying geographic coordinates. Outputs are serialised as **GeoJSON**, **CSV**, or **Shapefile** (.shp/.dbf/.prj, EPSG:4326), and can be pushed to the **eGov DIGIT Urban Asset Registry**, closing the loop from raw orbital imagery to field-action workflows without manual photointerpretation.
+
+### Key Capabilities at a Glance
+
+| Capability | Detail |
+|---|---|
+| Asset Detection | 7 categories — buildings, roads, water, trees, parks, drains, vehicles |
+| Land Cover Segmentation | 7-class pixel segmentation · DeepLabV3-MobileNetV3 · 59.7% mIoU |
+| Live Satellite Fetch | ESRI World Imagery + Bhuvan ISRO · any lat/lon · real-time tile stitch |
+| Change Detection | Temporal HSV diff · encroachment · vegetation loss · flooding |
+| Export Formats | GeoJSON · CSV · Shapefile (EPSG:4326) · DIGIT Urban Asset Registry push |
+| Deployment | Single Docker container · CPU-only PyTorch · ≤ 350 MB RAM |
 
 ---
 
