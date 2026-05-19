@@ -722,7 +722,6 @@ python train_segmentation.py --data ./data --epochs 15 --batch 8
 | Name | Role |
 |---|---|
 | **Tejas Singh Bhati** | AI · Full-Stack · ML |
-| **Saksham Mawari** | ML · Computer Vision · AI Research |
 
 *Built for eGov DIGIT · Indian Railways · 2026*
 
